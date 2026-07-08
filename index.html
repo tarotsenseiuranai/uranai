@@ -357,10 +357,100 @@ table.ytbl tr:first-child th,table.meishiki tr:first-child th{
   display:none;
 }
 
+/* ===== 命式タップ解説（干支ポップオーバー） ===== */
+td.kanshi-tap{
+  cursor:pointer;position:relative;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .12s;
+}
+td.kanshi-tap:active,td.kanshi-tap.tap-active{
+  background:var(--purple-pale);
+}
+td.kanshi-tap::after{
+  content:"";
+  display:block;
+  width:5px;height:5px;border-radius:50%;
+  background:var(--gold);
+  opacity:.55;
+  margin:2px auto 0;
+}
+#kanshiPopBackdrop{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(33,28,22,0.38);
+  display:none;
+  -webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px);
+}
+#kanshiPopBackdrop.open{display:block;}
+#kanshiPopSheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:2001;
+  background:var(--panel);
+  border-top:1px solid var(--line);
+  border-radius:14px 14px 0 0;
+  box-shadow:0 -6px 24px rgba(0,0,0,.18);
+  max-height:min(62vh,560px);
+  display:flex;flex-direction:column;
+  transform:translateY(100%);
+  transition:transform .22s cubic-bezier(.2,.8,.3,1);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#kanshiPopBackdrop.open #kanshiPopSheet{transform:translateY(0);}
+#kanshiPopSheet .kp-handle{
+  width:36px;height:4px;border-radius:2px;background:var(--line);
+  margin:10px auto 2px;flex:none;
+}
+#kanshiPopSheet .kp-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px 6px;flex:none;
+}
+#kanshiPopSheet .kp-title{
+  font-family:"Hiragino Mincho ProN","Noto Serif JP",serif;
+  font-size:17px;color:var(--ink);letter-spacing:.02em;
+}
+#kanshiPopSheet .kp-title .kp-char{
+  font-size:22px;color:var(--vermilion);margin-right:8px;font-weight:700;
+}
+#kanshiPopSheet .kp-close{
+  background:transparent;border:1px solid var(--line);color:var(--ink-soft);
+  width:30px;height:30px;border-radius:50%;font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex:none;
+}
+#kanshiPopSheet .kp-body{
+  padding:6px 20px 22px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  font-size:14px;line-height:1.85;color:var(--ink);white-space:pre-wrap;
+}
+
+@media(min-width:768px){
+  #kanshiPopSheet{
+    left:50%;right:auto;bottom:auto;top:50%;
+    transform:translate(-50%,-46%) scale(.98);
+    opacity:0;
+    width:min(520px,88vw);
+    border-radius:8px;border:1px solid var(--line);
+    max-height:70vh;
+    transition:transform .18s ease,opacity .18s ease;
+  }
+  #kanshiPopBackdrop.open #kanshiPopSheet{
+    transform:translate(-50%,-50%) scale(1);opacity:1;
+  }
+  #kanshiPopSheet .kp-handle{display:none;}
+}
+
 </style>
 
 </head>
 <body>
+
+<!-- 命式タップ解説：ポップオーバー -->
+<div id="kanshiPopBackdrop">
+  <div id="kanshiPopSheet" role="dialog" aria-modal="true">
+    <div class="kp-handle"></div>
+    <div class="kp-head">
+      <div class="kp-title" id="kanshiPopTitle"></div>
+      <button type="button" class="kp-close" id="kanshiPopClose" aria-label="閉じる">✕</button>
+    </div>
+    <div class="kp-body" id="kanshiPopBody"></div>
+  </div>
+</div>
 
 <!-- パスワード認証画面（統合版） -->
 <div id="auth-screen">
@@ -1478,8 +1568,8 @@ function renderMeishiki(r){
 
     return`<tr>
       <td class="lbl">${lbl}</td>
-      <td class="ks">${p.k}</td>
-      <td class="ks">${p.s}</td>
+      <td class="ks kanshi-tap" data-kanshi-type="kan" data-kanshi-char="${p.k}" data-kanshi-label="${lbl}">${p.k}</td>
+      <td class="ks kanshi-tap" data-kanshi-type="shi" data-kanshi-char="${p.s}" data-kanshi-label="${lbl}">${p.s}</td>
       <td style="min-width:110px;text-align:left;padding:6px 8px;">${eCell}</td>
       <td>${tenGod(dk,p.k)}</td>
       <td>${juniUn(dk,p.s)}</td>
@@ -3338,6 +3428,76 @@ function renderGetsuunTable() {
   document.getElementById('getsuunTable').innerHTML = rows;
   document.getElementById('getsuunDebug').innerHTML = '';
 }
+
+
+/* ============================================================
+   命式タップ解説（干支ポップオーバー）
+   出典：鑑定用シート I15:K22（天干＝Energie説明）／L15:N22（地支＝Sign説明）
+   命式（四柱）の天干・地支セルをタップすると、該当する解説文を
+   ボトムシート（PCでは中央モーダル）でその場に表示する。
+   他の場所（背景）をタップすると閉じる。
+   ============================================================ */
+const KAN_DESC = {"甲": "意思が強い。\n\n一度やると決めたことは途中で投げ出さない。大きな目標に向かってコツコツ努力をする。正義感や責任感が強い。リーダーシップがある。理想主義。明るくさっぱりした性格。古風な雰囲気がある。成長意欲がすごい。直線的な性格。かなり頑固な人。狂信的な性格も持ち合わせている。", "乙": "生真面目で几帳面。\n\n頑固な一面がある。コツコツ努力を続けられる。責任感が強い。与えられた仕事をキッチリこなすマジメな人。権力的なものに従属したい気持ちが強い。長い物には巻かれろ的な考え方をする。マジメさが裏目に出て意固地になって周りと衝突することがある。", "丙": "自意識が強い。\n\n自分らしく生きたいという気持ちが非常に強い。他人と同じ平凡な人生を嫌う。自分の考え方や価値観を大切にする。自分中心にものごとを考える人。競争意識が強い。勝ち負けにこだわる。華やかさとカリスマ性を兼ね備えている。美男美女が多い。わがままになって自我が暴走しやすい。", "丁": "目立つことが好き。\n\n地味で堅実な生き方を嫌う。周りから注目や関心を集めることに意識が向かう。構ってちゃんタイプ。負けず嫌い。常に自分が一番になりたいという意識が強い。考え方は前向きかつ楽天的。楽しいことが大好き。ルーズな面がある。気分でコロコロ行動を変えたり約束を平気で破ったりすることがある。", "戊": "活動的。\n\n性格はあっさりしていて現実主義者。目に見える偏財を大切にする。人の感情やスピリチュアル的な偏財を蔑ろにする傾向がある。ものごとを組織する才能がある。組織のリーダーになることが多い。モノやお金に対する執着心がかなり強い。深く考える前に行動することが多い。失敗することも多い。", "己": "堅実。\n\n現実感覚がかなり強い。粘り強い気質を持っている。考え方は保守的。大きな冒険はしない。緻密さがあるので細かい作業が得意。秘密性・神秘性がある。あまり人前で本音を言わない傾向がある。周りからは「何を考えてるか分からない」と思われることが多い。", "庚": "クールで個人主義。\n\nクールで冷静沈着。知的な雰囲気。あまり感情を表現しない。無表情になりやすい。ものごとを深く考え合理的に判断する。厳しい環境にも耐えられる強さがある。人と群れるよりも1人で過ごすことが多い。感受性が強い。仕事や交際面で神経が疲れやすく心が不安定になることがある。", "辛": "大人しくてデリケート。\n\n内向的で思慮深い。自己表現が苦手。人間関係もかなり慎重。かなり繊細で傷つきやすい。静かな生活環境を好む。美意識に優れている。温和で辛抱強い。優しい性格を持ち合わせている。HSP気質な人が多い。", "壬": "頭が良い。\n\n知恵の象徴で東大生に多い。悪知恵も人一倍働くためルールを破ることがある。性格はのんびりしていて朗らか。前向きにものごとを考える。包容力がある。周りから頼りにされることが多い。人間関係に関心が強い。共感力も高い。欲張りな一面がある。食べたり飲んだりと楽しみに溺れやすい。", "癸": "直感力が鋭い。\n\n人を見る目がある。争いごとを嫌う平和主義者。他人に奉仕することを考えて行動する。人間関係に関心が強い。臆病で精神が過敏な一面を持っている。周囲への警戒心が強い。なかなか本心を許すことがない。かなり気を使う人。基本的には周りに合わせて行動する。自分より周りを優先するので疲れやすい。"};
+const SHI_DESC = {"子": "堅実、頑固、ストイック、大胆な行動力、冷静沈着、人に興味がない、誠実、財テクに詳しい、安定志向、人に興味がないため接客系は続かない", "丑": "コミュニケーションを取るのが好き、人に合わせるのが苦手、好奇心旺盛、落ち込みやすい、責任感が強い、新たな挑戦が好き、褒められると伸びる、企画力・発想力がある", "寅": "繊細、優しい、人の感情に寄り添える、ロマンチスト、流されやすい、感受性、観察力がある、対人能力が高い、決めるのは苦手、芸術性がある", "卯": "正義感、直感力がある、思い立ったら即行動、面倒見が良い、リーダーに指名されがち、努力家、仕事を抱えがち、面倒見が良い、単純作業が苦手、プライドが高い", "辰": "行動派、ポジティブ、失敗を恐れない、決断が早い、なんとかなる精神、輪の中心にいたい、情に厚い、約束を守る", "巳": "好奇心旺盛、二面性がある、深く考えない、コミュ力高い、飽きっぽい、頭の回転が早い、マルチタスクが得意、集中力が持続しない、接客に向く、話す書くが得意", "午": "優しい、気配り上手、穏やか、協調性がある、平和主義、真面目、責任感が強い、癒し能力がある、世話好き、集団行動が得意", "未": "意見をハッキリ言う、神経質、凝り性、負けず嫌い、せっかち、猪突猛進、目標を達成する、リーダー適性、周囲と衝突しやすい、勝負事に強い", "申": "真面目、几帳面、知性に優れる、勉強好き、気遣いができる、物事を客観的に見れる、管理能力に長ける、時間やルールをきっちり守る、基準が厳しい", "酉": "社交的、公正・中立に判断できる、論理的、繊細、勉強が得意、知的、冷静、調整が得意、聞き上手、臨機応変、要領が良い、ストレスを溜めやすい", "戌": "芯が強い、一点集中が得意、忍耐力がある、秘密主義、人に合わせるのが苦手、気持ちの切り替えが苦手、真面目、慎重、縁の下の力持ち", "亥": "素直、謙虚、考えるよりも行動、おおざっぱ、事務作業が苦手、忙しさが苦にならない、切り替えが早い、プレーヤータイプ、俯瞰力がある"};
+
+function openKanshiPopover(type, char, label){
+  const titleEl = document.getElementById('kanshiPopTitle');
+  const bodyEl = document.getElementById('kanshiPopBody');
+  const backdrop = document.getElementById('kanshiPopBackdrop');
+  if(!titleEl || !bodyEl || !backdrop) return;
+
+  let text, kindLabel;
+  if(type === 'kan'){
+    text = KAN_DESC[char];
+    kindLabel = (label ? label.replace('柱','') : '') + '天干';
+  } else {
+    text = SHI_DESC[char];
+    kindLabel = (label ? label.replace('柱','') : '') + '地支';
+  }
+  if(!text){ text = '該当する解説データが見つかりませんでした。'; }
+
+  titleEl.innerHTML = `<span class="kp-char">${char}</span>${kindLabel}`;
+  bodyEl.textContent = text;
+  backdrop.classList.add('open');
+}
+
+function closeKanshiPopover(){
+  const backdrop = document.getElementById('kanshiPopBackdrop');
+  if(backdrop) backdrop.classList.remove('open');
+}
+
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    const backdrop = document.getElementById('kanshiPopBackdrop');
+    const sheet = document.getElementById('kanshiPopSheet');
+    const closeBtn = document.getElementById('kanshiPopClose');
+
+    // 命式テーブル内の干支セルタップで開く（イベント委譲）
+    document.addEventListener('click', function(e){
+      const cell = e.target.closest('td.kanshi-tap');
+      if(cell){
+        const type = cell.getAttribute('data-kanshi-type');
+        const char = cell.getAttribute('data-kanshi-char');
+        const label = cell.getAttribute('data-kanshi-label');
+        openKanshiPopover(type, char, label);
+        e.stopPropagation();
+        return;
+      }
+    });
+
+    // 背景（バックドロップ）をタップしたら閉じる。シート本体のタップでは閉じない。
+    if(backdrop){
+      backdrop.addEventListener('click', function(e){
+        if(e.target === backdrop) closeKanshiPopover();
+      });
+    }
+    if(closeBtn) closeBtn.addEventListener('click', closeKanshiPopover);
+    // ESCキーでも閉じる
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') closeKanshiPopover();
+    });
+  });
+})();
 
 </script>
 </body>

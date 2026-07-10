@@ -3307,8 +3307,10 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     return [inkCtx];
   }
 
-  // ink/markerの2レイヤーを最終的なキャンバスに1回だけ合成する
+  // ink/markerの2レイヤーを最終的なキャンバスに1回だけ合成する（全体版）
   // （マーカーはここで初めてMARKER_ALPHAを掛けるので、何本重ねても濃くならない）
+  // ※ページ全体（縦にとても長い）を毎回合成すると重いため、リサイズ・全消去・
+  //   初期描画などの「頻度が低い場面」だけで使う。
   function composite(){
     ctx.clearRect(0,0,canvas._cssW||0,canvas._cssH||0);
     ctx.save();
@@ -3319,6 +3321,39 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     ctx.globalAlpha = 1;
     ctx.drawImage(inkLayer, 0, 0, canvas._cssW, canvas._cssH);
     ctx.restore();
+  }
+
+  // ★ リアルタイム描画・消去はここだけ更新する「部分合成」版。
+  //   ページ全体ではなく、今動かした部分（ダーティ矩形）だけ
+  //   clearRect＋drawImageするので、ページが長くても軽い＝消しゴムも
+  //   鉛筆・マーカーも指の動きに遅れず反応する。
+  function compositeRegion(cssX, cssY, cssW, cssH){
+    const W = canvas._cssW || 0, H = canvas._cssH || 0;
+    const x1 = Math.max(0, cssX), y1 = Math.max(0, cssY);
+    const x2 = Math.min(W, cssX + cssW), y2 = Math.min(H, cssY + cssH);
+    const w = x2 - x1, h = y2 - y1;
+    if(w <= 0 || h <= 0) return;
+    ctx.clearRect(x1, y1, w, h);
+    const sx = x1*dpr, sy = y1*dpr, sw = w*dpr, sh = h*dpr;
+    ctx.save();
+    ctx.globalAlpha = MARKER_ALPHA;
+    ctx.drawImage(markerLayer, sx, sy, sw, sh, x1, y1, w, h);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.drawImage(inkLayer, sx, sy, sw, sh, x1, y1, w, h);
+    ctx.restore();
+  }
+
+  // 直近のセグメント（線1本分の区間）を囲むダーティ矩形（ブラシ幅ぶん余白を取る）
+  function segmentDirtyRect(s){
+    const n = s.points.length;
+    const p0 = s.points[n-2] || s.points[0];
+    const p1 = s.points[n-1];
+    const pad = s.width/2 + 3;
+    const minX = Math.min(p0.x, p1.x) - pad, maxX = Math.max(p0.x, p1.x) + pad;
+    const minY = Math.min(p0.y, p1.y) - pad, maxY = Math.max(p0.y, p1.y) + pad;
+    return { x:minX, y:minY, w:maxX-minX, h:maxY-minY };
   }
 
   function redrawAll(){
@@ -3344,13 +3379,16 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     };
     strokes.push(curStroke);
     layersForTool(curStroke.tool).forEach(lc => paintStrokeToLayer(lc, curStroke));
-    composite();
+    const p = curStroke.points[0];
+    const pad = curStroke.width/2 + 3;
+    compositeRegion(p.x-pad, p.y-pad, pad*2, pad*2);
   }
   function moveStroke(clientX, clientY){
     if(!drawMode || !curStroke) return;
     curStroke.points.push(getPosFromXY(clientX, clientY));
     layersForTool(curStroke.tool).forEach(lc => paintSegmentToLayer(lc, curStroke));
-    composite();
+    const rect = segmentDirtyRect(curStroke);
+    compositeRegion(rect.x, rect.y, rect.w, rect.h);
   }
   function endStroke(){ curStroke = null; }
 

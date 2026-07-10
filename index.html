@@ -112,33 +112,123 @@ table.ytbl tr.today td{font-weight:700;}
 footer.pg{text-align:center;color:var(--ink-soft);font-size:11px;margin-top:36px;
   padding-bottom:env(safe-area-inset-bottom);}
 
-/* 目次ナビ */
-.toc{
-  display:flex;flex-wrap:wrap;gap:8px;
-  background:var(--bg);border:1px solid var(--line-soft);border-radius:2px;
-  padding:10px 12px;margin-bottom:16px;align-items:center;
+/* 目次：ハンバーガーメニュー（左上固定） */
+#tocMenuBtn{
+  position:fixed;left:16px;top:calc(16px + env(safe-area-inset-top,0px));
+  width:46px;height:46px;border-radius:50%;
+  background:rgba(40,40,40,0.55);color:#fff;border:none;
+  cursor:pointer;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.18);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  z-index:1500;opacity:0.55;transition:opacity .15s;
 }
-.toc-label{font-size:11px;font-weight:700;color:var(--ink-soft);margin-right:4px;}
-.toc a{
-  font-size:12px;color:var(--ink);text-decoration:none;
-  background:var(--line-soft);padding:5px 10px;border-radius:14px;
-  white-space:nowrap;transition:background .15s,color .15s;
-}
-.toc a:hover,.toc a:active{background:#3a3a3a;color:#fff;}
+#tocMenuBtn.show{display:flex;}
+#tocMenuBtn:hover,#tocMenuBtn:active{opacity:0.9;}
+#tocMenuBtn .bar{display:block;width:20px;height:2px;background:#fff;border-radius:1px;}
 
-/* トップに戻るボタン（半透明・常時固定） */
-#backToTopBtn{
+/* 目次：スライドインドロワー */
+#tocDrawerBackdrop{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(33,28,22,0.38);
+  display:none;
+  -webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px);
+}
+#tocDrawerBackdrop.open{display:block;}
+#tocDrawer{
+  position:fixed;top:0;left:0;bottom:0;z-index:2001;
+  width:min(80vw,300px);
+  background:var(--panel);
+  border-right:1px solid var(--line);
+  box-shadow:4px 0 24px rgba(0,0,0,.18);
+  transform:translateX(-100%);
+  transition:transform .22s cubic-bezier(.2,.8,.3,1);
+  display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top);
+}
+#tocDrawerBackdrop.open #tocDrawer{transform:translateX(0);}
+#tocDrawer .td-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 18px 12px;flex:none;
+  font-family:"Hiragino Mincho ProN","Noto Serif JP",serif;
+  font-size:16px;color:var(--ink);letter-spacing:.03em;
+  border-bottom:1px solid var(--line-soft);
+}
+#tocDrawer .td-close{
+  background:transparent;border:1px solid var(--line);color:var(--ink-soft);
+  width:30px;height:30px;border-radius:50%;font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex:none;
+}
+#tocDrawer nav{
+  display:flex;flex-direction:column;padding:6px 0;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+#tocDrawer nav a{
+  padding:13px 20px;font-size:14px;color:var(--ink);text-decoration:none;
+  border-bottom:1px solid var(--line-soft);
+  -webkit-tap-highlight-color:transparent;
+}
+#tocDrawer nav a:active{background:var(--purple-pale);}
+
+@media(min-width:768px){
+  #tocMenuBtn{width:52px;height:52px;left:24px;
+    top:calc(24px + env(safe-area-inset-top,0px));}
+  #tocDrawer nav a{font-size:14.5px;padding:14px 22px;}
+}
+
+/* ===== お絵かき機能 ===== */
+#drawCanvas{
+  position:absolute;top:0;left:0;
+  z-index:1400;
+  pointer-events:none;
+  touch-action:auto;
+}
+#drawCanvas.active{
+  pointer-events:auto;
+  touch-action:none;
+  cursor:crosshair;
+}
+#drawFab{
   position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom));
   width:46px;height:46px;border-radius:50%;
   background:rgba(40,40,40,0.55);color:#fff;border:none;
-  font-size:20px;line-height:1;cursor:pointer;
-  display:none;align-items:center;justify-content:center;
+  font-size:19px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
   box-shadow:0 2px 8px rgba(0,0,0,0.18);
-  backdrop-filter:blur(2px);
-  z-index:999;
-  opacity:0.55;transition:opacity .15s;
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  z-index:1600;
+  opacity:0.55;transition:opacity .15s,background .15s;
 }
-#backToTopBtn:hover,#backToTopBtn:active{opacity:0.9;}
+#drawFab:hover,#drawFab:active{opacity:0.9;}
+#drawFab.active{background:var(--vermilion);opacity:0.95;}
+#drawToolbar{
+  position:fixed;left:16px;bottom:calc(70px + env(safe-area-inset-bottom));
+  z-index:1600;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 4px 16px rgba(0,0,0,.16);
+  padding:10px;
+  display:none;flex-direction:column;gap:8px;
+  transform:translateY(8px);opacity:0;
+  transition:transform .15s ease,opacity .15s ease;
+}
+#drawToolbar.show{display:flex;transform:translateY(0);opacity:1;}
+.dt-row{display:flex;gap:6px;align-items:center;}
+.dt-tool,.dt-clear,.dt-done{
+  width:36px;height:36px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;font-size:16px;cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.dt-tool.active{background:var(--purple-pale);border-color:var(--gold);}
+.dt-done{background:var(--indigo);color:#fff;border-color:var(--indigo);font-weight:700;}
+.dt-clear{color:var(--vermilion);}
+.dt-colors{display:flex;gap:6px;padding-left:2px;}
+.dt-color{
+  width:22px;height:22px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;
+}
+.dt-color.active{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset;}
 
 /* iOS/iPad対応 */
 input,select,button{-webkit-appearance:none;appearance:none;border-radius:2px;}
@@ -206,14 +296,7 @@ table.ytbl tr:first-child th,table.meishiki tr:first-child th{
   table.ytbl th{font-size:12.5px;}
   table.meishiki td.ks{font-size:24px;}
 
-  /* 目次：タップしやすい大きめピル */
-  .toc{padding:14px 16px;gap:10px;}
-  .toc a{font-size:13.5px;padding:9px 16px;border-radius:18px;}
-
   /* トップへ戻るボタンも少し大きく */
-  #backToTopBtn{width:52px;height:52px;font-size:22px;left:24px;
-    bottom:calc(24px + env(safe-area-inset-bottom));}
-
   /* 入力グリッドは余裕をもって配置 */
   .grid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px 20px;}
 
@@ -229,7 +312,6 @@ table.ytbl tr:first-child th,table.meishiki tr:first-child th{
 
 /* iPadでのホバー誤爆防止：hoverをポインタ精度のある環境だけに限定 */
 @media(hover:none){
-  .toc a:hover{background:var(--line-soft);color:var(--ink);}
   button.ghost:hover{background:#fff;}
 }
 
@@ -416,7 +498,18 @@ td.kanshi-tap::after{
 }
 #kanshiPopSheet .kp-body{
   padding:6px 20px 22px;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  font-size:14px;line-height:1.85;color:var(--ink);white-space:pre-wrap;
+  font-size:14px;line-height:1.85;color:var(--ink);
+}
+#kanshiPopSheet .kp-section{white-space:pre-wrap;}
+#kanshiPopSheet .kp-karma-divider{
+  border-top:1px dashed var(--line);margin:16px 0 12px;
+}
+#kanshiPopSheet .kp-karma-title{
+  font-size:12.5px;font-weight:700;color:var(--gold);
+  letter-spacing:.03em;margin-bottom:6px;
+}
+#kanshiPopSheet .kp-karma-text{
+  white-space:pre-wrap;color:var(--ink-soft);
 }
 
 @media(min-width:768px){
@@ -440,6 +533,29 @@ td.kanshi-tap::after{
 </head>
 <body>
 
+<!-- 目次：ハンバーガーメニュー -->
+<button id="tocMenuBtn" title="目次" aria-label="目次を開く">
+  <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+</button>
+<div id="tocDrawerBackdrop">
+  <aside id="tocDrawer">
+    <div class="td-head">
+      <span>目次</span>
+      <button type="button" class="td-close" id="tocDrawerClose" aria-label="閉じる">✕</button>
+    </div>
+    <nav id="tocDrawerNav">
+      <a href="#sec-meishiki" data-toc-target="sec-meishiki">命式（四柱）</a>
+      <a href="#sec-gogyo" data-toc-target="sec-gogyo">五行バランス</a>
+      <a href="#sec-stats" data-toc-target="sec-stats">基本情報</a>
+      <a href="#sec-daiun" data-toc-target="sec-daiun">大運一覧</a>
+      <a href="#sec-personality" data-toc-target="sec-personality">性格・才能グラフ</a>
+      <a href="#sec-nenpyo" data-toc-target="sec-nenpyo">大運年表／五星三心／九星気学</a>
+      <a href="#sec-getsuun" data-toc-target="sec-getsuun">月運表</a>
+      <a href="#sec-aisho" data-toc-target="sec-aisho">相性占い（宿曜）</a>
+    </nav>
+  </aside>
+</div>
+
 <!-- 命式タップ解説：ポップオーバー -->
 <div id="kanshiPopBackdrop">
   <div id="kanshiPopSheet" role="dialog" aria-modal="true">
@@ -449,6 +565,26 @@ td.kanshi-tap::after{
       <button type="button" class="kp-close" id="kanshiPopClose" aria-label="閉じる">✕</button>
     </div>
     <div class="kp-body" id="kanshiPopBody"></div>
+  </div>
+</div>
+
+<!-- お絵かき機能：ページ全体に重なる描画キャンバス -->
+<canvas id="drawCanvas"></canvas>
+<button id="drawFab" title="お絵かきモード" aria-label="お絵かきモードを切り替え">✏️</button>
+<div id="drawToolbar">
+  <div class="dt-row">
+    <button class="dt-tool active" data-tool="pencil" title="鉛筆">✏️</button>
+    <button class="dt-tool" data-tool="marker" title="マーカー">🖍️</button>
+    <button class="dt-tool" data-tool="eraser" title="消しゴム">🧽</button>
+    <button class="dt-clear" id="drawClearBtn" title="全部消す（もう一度タップで確定）">🗑️</button>
+    <button class="dt-done" id="drawDoneBtn" title="完了">✓</button>
+  </div>
+  <div class="dt-colors" id="drawColors">
+    <button class="dt-color active" data-color="#211C16" style="background:#211C16" title="黒"></button>
+    <button class="dt-color" data-color="#AE4530" style="background:#AE4530" title="朱"></button>
+    <button class="dt-color" data-color="#2B3C4E" style="background:#2B3C4E" title="紺"></button>
+    <button class="dt-color" data-color="#3F7D45" style="background:#3F7D45" title="緑"></button>
+    <button class="dt-color" data-color="#E8A33D" style="background:#E8A33D" title="橙"></button>
   </div>
 </div>
 
@@ -632,18 +768,6 @@ document.addEventListener('DOMContentLoaded', initAuth);
 
 <div id="results">
 
-  <nav class="toc" id="tocNav">
-    <span class="toc-label">目次</span>
-    <a href="#sec-meishiki">命式（四柱）</a>
-    <a href="#sec-gogyo">五行バランス</a>
-    <a href="#sec-stats">基本情報</a>
-    <a href="#sec-daiun">大運一覧</a>
-    <a href="#sec-personality">性格・才能グラフ</a>
-    <a href="#sec-nenpyo">大運年表／五星三心／九星気学</a>
-    <a href="#sec-getsuun">月運表</a>
-    <a href="#sec-aisho">相性占い（宿曜）</a>
-  </nav>
-
   <div class="panel" id="sec-meishiki">
     <h2>命式（四柱）</h2>
     <p class="sub">真太陽時に基づく干支暦計算。強さ＝陰陽点＋根点（隣接地支との五行連動）。Effect＝通変星（十神）、Image＝十二運。</p>
@@ -731,8 +855,6 @@ document.addEventListener('DOMContentLoaded', initAuth);
 
 <footer class="pg">個人利用専用ツール（オフラインで動作します）</footer>
 </div>
-
-<button id="backToTopBtn" title="トップに戻る" onclick="window.scrollTo({top:0,behavior:'smooth'});">↑</button>
 
 <script>
 /* ==========================================================
@@ -3030,18 +3152,230 @@ function showSafariBanner(){
 }
 window.addEventListener('DOMContentLoaded', showSafariBanner);
 
-/* トップに戻るボタン：結果表示中かつ少しスクロールした時だけ見せる */
+/* 目次：ハンバーガーメニュー（結果表示中は常時表示、タップでドロワー開閉） */
 (function(){
-  const btn = document.getElementById('backToTopBtn');
-  if(!btn) return;
-  function updateBtn(){
+  const menuBtn = document.getElementById('tocMenuBtn');
+  const backdrop = document.getElementById('tocDrawerBackdrop');
+  const closeBtn = document.getElementById('tocDrawerClose');
+  const nav = document.getElementById('tocDrawerNav');
+  if(!menuBtn || !backdrop) return;
+
+  function updateMenuBtn(){
     const resultsVisible = document.getElementById('results').style.display !== 'none';
-    btn.style.display = (resultsVisible && window.scrollY > 200) ? 'flex' : 'none';
+    menuBtn.classList.toggle('show', resultsVisible);
   }
-  window.addEventListener('scroll', updateBtn, {passive:true});
-  window.addEventListener('DOMContentLoaded', updateBtn);
-  document.addEventListener('click', ()=>setTimeout(updateBtn, 300));
-  updateBtn();
+  function openDrawer(){ backdrop.classList.add('open'); }
+  function closeDrawer(){ backdrop.classList.remove('open'); }
+
+  menuBtn.addEventListener('click', openDrawer);
+  if(closeBtn) closeBtn.addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', function(e){
+    if(e.target === backdrop) closeDrawer();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeDrawer();
+  });
+  if(nav){
+    nav.addEventListener('click', function(e){
+      const a = e.target.closest('a[data-toc-target]');
+      if(!a) return;
+      e.preventDefault();
+      const target = document.getElementById(a.getAttribute('data-toc-target'));
+      closeDrawer();
+      if(target){
+        setTimeout(()=>{ target.scrollIntoView({behavior:'smooth', block:'start'}); }, 180);
+      }
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', updateMenuBtn);
+  document.addEventListener('click', ()=>setTimeout(updateMenuBtn, 300));
+  updateMenuBtn();
+})();
+
+/* ============================================================
+   お絵かき機能（ページ全体に重ねて描画できる注釈キャンバス）
+   ・左下の鉛筆ボタンでお絵かきモードのON/OFF切替
+   ・鉛筆／マーカー／消しゴムの3ツール＋カラー選択
+   ・モードを解除しても描いた内容はそのまま画面に残る
+   ============================================================ */
+(function(){
+  const canvas = document.getElementById('drawCanvas');
+  const fab = document.getElementById('drawFab');
+  const toolbar = document.getElementById('drawToolbar');
+  const doneBtn = document.getElementById('drawDoneBtn');
+  const clearBtn = document.getElementById('drawClearBtn');
+  if(!canvas || !fab || !toolbar) return;
+  const ctx = canvas.getContext('2d');
+  const toolBtns = toolbar.querySelectorAll('.dt-tool');
+  const colorBtns = toolbar.querySelectorAll('.dt-color');
+
+  let drawMode = false;
+  let currentTool = 'pencil';
+  let currentColor = '#211C16';
+  let strokes = [];
+  let curStroke = null;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  const TOOL_CFG = {
+    pencil: { width: 3,  alpha: 1.0,  composite: 'source-over' },
+    marker: { width: 18, alpha: 0.35, composite: 'multiply' },
+    eraser: { width: 28, alpha: 1.0,  composite: 'destination-out' },
+  };
+
+  function docSize(){
+    return {
+      w: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+      h: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
+    };
+  }
+
+  function resizeCanvas(){
+    const {w,h} = docSize();
+    if(canvas._cssW === w && canvas._cssH === h) return;
+    canvas.width = Math.max(1, Math.round(w*dpr));
+    canvas.height = Math.max(1, Math.round(h*dpr));
+    canvas.style.width = w+'px';
+    canvas.style.height = h+'px';
+    canvas._cssW = w; canvas._cssH = h;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    redrawAll();
+  }
+
+  function drawStroke(s){
+    if(!s.points.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = s.composite;
+    ctx.globalAlpha = s.alpha;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = s.width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    if(s.points.length === 1){
+      ctx.moveTo(s.points[0].x, s.points[0].y);
+      ctx.lineTo(s.points[0].x+0.01, s.points[0].y+0.01);
+    } else {
+      ctx.moveTo(s.points[0].x, s.points[0].y);
+      for(let i=1;i<s.points.length;i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function redrawAll(){
+    ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
+    strokes.forEach(drawStroke);
+  }
+
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function pointerDown(e){
+    if(!drawMode) return;
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    const cfg = TOOL_CFG[currentTool];
+    curStroke = {
+      color: currentColor, width: cfg.width, alpha: cfg.alpha,
+      composite: cfg.composite, points: [getPos(e)],
+    };
+    strokes.push(curStroke);
+    drawStroke(curStroke);
+  }
+  function pointerMove(e){
+    if(!drawMode || !curStroke) return;
+    e.preventDefault();
+    curStroke.points.push(getPos(e));
+    const n = curStroke.points.length;
+    if(n < 2) return;
+    ctx.save();
+    ctx.globalCompositeOperation = curStroke.composite;
+    ctx.globalAlpha = curStroke.alpha;
+    ctx.strokeStyle = curStroke.color;
+    ctx.lineWidth = curStroke.width;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(curStroke.points[n-2].x, curStroke.points[n-2].y);
+    ctx.lineTo(curStroke.points[n-1].x, curStroke.points[n-1].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function pointerUp(){ curStroke = null; }
+
+  canvas.addEventListener('pointerdown', pointerDown);
+  canvas.addEventListener('pointermove', pointerMove);
+  canvas.addEventListener('pointerup', pointerUp);
+  canvas.addEventListener('pointercancel', pointerUp);
+  canvas.addEventListener('pointerleave', pointerUp);
+
+  function setDrawMode(on){
+    drawMode = on;
+    canvas.classList.toggle('active', on);
+    fab.classList.toggle('active', on);
+    toolbar.classList.toggle('show', on);
+    if(on) resizeCanvas();
+  }
+
+  fab.addEventListener('click', ()=> setDrawMode(!drawMode));
+  if(doneBtn) doneBtn.addEventListener('click', ()=> setDrawMode(false));
+
+  toolBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      toolBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTool = btn.getAttribute('data-tool');
+    });
+  });
+  colorBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      colorBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentColor = btn.getAttribute('data-color');
+    });
+  });
+  if(clearBtn){
+    let clearArmed = false;
+    let clearArmTimer = null;
+    const clearBtnDefaultText = clearBtn.textContent;
+    clearBtn.addEventListener('click', ()=>{
+      if(!strokes.length) return;
+      if(!clearArmed){
+        // 1回目のタップ：確認状態にする（iOSのホーム画面追加時はconfirm()等の
+        // ネイティブダイアログが機能しないため、アプリ内のダブルタップ確認方式を使う）
+        clearArmed = true;
+        clearBtn.textContent = '✓?';
+        clearBtn.style.background = 'var(--vermilion)';
+        clearBtn.style.color = '#fff';
+        clearBtn.style.borderColor = 'var(--vermilion)';
+        clearArmTimer = setTimeout(()=>{
+          clearArmed = false;
+          clearBtn.textContent = clearBtnDefaultText;
+          clearBtn.style.background = '';
+          clearBtn.style.color = '';
+          clearBtn.style.borderColor = '';
+        }, 2500);
+        return;
+      }
+      // 2回目のタップ（確認）：実際に消去する
+      clearTimeout(clearArmTimer);
+      clearArmed = false;
+      clearBtn.textContent = clearBtnDefaultText;
+      clearBtn.style.background = '';
+      clearBtn.style.color = '';
+      clearBtn.style.borderColor = '';
+      strokes = [];
+      redrawAll();
+    });
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  // テーブル再描画などでページの高さが変わることがあるため、定期的にキャンバスサイズを同期
+  setInterval(resizeCanvas, 1000);
+  window.addEventListener('DOMContentLoaded', resizeCanvas);
+  resizeCanvas();
 })();
 
 /* 大運表・年運表の見出し行をページスクロール中も固定表示する */
@@ -3452,13 +3786,33 @@ const IMAGE_ALIAS = {"冠帯":"冠滞"};
 const EFFECT_DESC = {"比肩": "自意識が強い。\n\n自由を好み周りから干渉されることを嫌う。自分の考え方や価値観を大切にする。協調性のないワガママな性格。頭の回転が早くて理屈っぽい一面がある。競争意識が強い。ゴーイングマイウェイの人生を貫く。", "劫財": "自己顕示欲が強い。\n\n目立つことが大好き。人とのコミュニケーションがうまい。交友関係が得意。周りから評価してもらうために健気に頑張る。性格的には遊び好きでルーズな面がある。お金を派手に使ってしまうことが多い。仕事でも一攫千金的な考えをするので真面目に働くのを嫌う傾向がある。", "食神": "のんびりしていて大らか。\n\n愛情深い。包容力があって優しい人。自分が思ったことをストレートに表現する。共感力が高いので他人から好かれやすい。楽しいこと、美味しいものなど、気持ちをハッピーにしてくれるものが大好き。欲に流されやすく、贅沢志向な人。", "傷官": "闘争心が強くシビア。\n\n潔癖で厳しい考え方をする。他人を見る目は非常に鋭い。鋭さゆえに人を傷つけたり批判的になることが多い。徹底した厳しさやプロ意識を持っている。一流を目指す上ではかなり有効なカード。", "偏財": "美的センスに優れる。社交的。\n\n美しい偏財・華やかな偏財が好き。性格はあっさりしていて社交的。フットワークも軽い。モノやお金に対する執着心が強い。見栄えの良いものを好む。オシャレな人が多い。深く考えるよりもスピード感を持って行動する。男性の場合は女性関係で失敗しやすい。", "正財": "堅実で質素。\n\n質素で慎ましい生活を送る。偏財の人よりもお金に対する執着心が強い。無駄なお金は絶対に使いたくないという人が多い。モノへの執着心も強い。自分が集めたコレクションで部屋の中を埋め尽くして満足するなど収集癖もある。", "偏官": "ストイックな仕事人間。\n\n目標に向かって一直線に突き進んでいく。生真面目で几帳面。責任感が強い。理性が強く自己抑制的な性格。一生懸命仕事に打ち込む。理想主義。行動力もあるバイタリティー溢れる人。趣味がない、もしくは少ない傾向。昔でいう武士みたいな人。", "正官": "プライドが高い。権力志向。\n\n権力に固執する人。エリート志向。プライドも高い。偏官の同じく理性的な人。保守的で安定感がある。責任感が強く仕事熱心。常識的な人。周りから信頼されやすい。上から目線になりがちな人。", "偏印": "知的好奇心が強い。空想的。\n\n想像力豊かな人。探究心も強い。未知の偏財や学問との縁が深い。気分が変わりやすい。気分次第で仕事をコロコロ変えてしまうことがある。空想力に優れている分、現実感覚が弱い。フワフワしていて地に足が着いてないので私生活は不安定になりやすい。", "印綬": "温厚で保守的。\n\n優しさ、温厚さを持つ人。石橋を叩いて渡るタイプ。人付き合いも慎重。歴史のある古き良きものを守る意識がある。最先端のものに拒否反応を起こしたり、自分自身も新しいことにチャレンジすることをためらう傾向が強い。自分を守る意識が強く、自己愛が強い。男性の場合はマザコン気質な人が多い。"};
 const IMAGE_DESC = {"胎": "夢、希望。\n\n夢と希望に溢れるロマンティックな人。夢や希望を追いかける人生になりやすい。理想主義な人。", "養": "無邪気、純粋。\n\n純粋な可愛らしさのある人。臆病で人見知りするところがある。裏表がない。周りからも可愛がられる愛されキャラ。子供っぽい性格で「困った時は周りが何とかしてくれる」と他力本願なところがある。", "長生": "外向的、明るい。\n\n外向的で明るい人。無邪気な性格。まるで活発な子供のような雰囲気を持っている。思いついたことをポンポン口から出してしまう。悪気はなくても周りの人を怒らせてしまうこともがある。素直で警戒心がない。", "沐浴": "変化、刺激。\n\n変化と刺激を求めて行動する。仕事をコロコロ変えたり、すぐに引っ越したりする。熱しやすく冷めやすい性格。オシャレな雰囲気の人が多いのも特徴。", "冠滞": "自己顕示。\n\n怖いもの知らずで威勢の良い人。勢いがある。強気で負けず嫌い。人前では決して弱みを見せない。自分を大きく見せようとする人が多い。", "建禄": "円満、柔和。\n\n包容力のある大らかな人。温和で優しいので、周りから好かれやすい。何事も粘り強くマイペースに進める。独立心が強い。1人でコツコツ地道な努力ができる大器晩成型の人。", "帝旺": "強気、威厳。\n\n強気でプライドの高い人。努力家。リーダーシップがある。向上心がある。ものごとを積極的かつ前向きに考える。周りに対して支配的で横暴な態度を取るところがある。", "衰": "自己抑制。\n\n温和で自制心の強い人。落ち着いた雰囲気を持っている。慎重で控えめ。我慢強い性格。深く考えてから行動するタイプ。人を疑う気持ちも強い。", "病": "固執、煩悶。\n\n執着心が強く悩みやすい人。人や物に対する愛着心が強い。自分の思い通りにいかない時にクヨクヨと悩みやすい。仕事でもこだわりが強く、職人的な気質を持っている。", "死": "内向的、静か。\n\n無口で静けさを好む人。自分の内面性に興味が強い。考え方はネガティブで内気。自己表現はあまりしないタイプ。人付き合いも苦手。", "墓": "思慮深い。\n\n保守的で心配性な人。落ち着いている。物事を深く考える。慎重に行動するので失敗が少ないタイプ。人間関係は簡素で落ち着いている。クールに振る舞うタイプ。", "絶": "否定、不安定。\n\n不安定な心理を抱えている人。自分に対して自信を持てなかったり異性に対して信頼できない気持ちがあったり家族に対しても否定的な気持ちがあったりするタイプ。人に対してすぐに心を閉ざしてしまう。"};
 
-function openKanshiPopover(type, char, label){
+/* ============================================================
+   前世・カルマ解説（鑑定用シート ★前世・カルマ セクション）
+   ・天干タップ時：十神（Effect）ベースの「前世の生き方／考え方／理想」を追加表示
+     出典: M99:O106(年柱)/M108:O115(月柱)/M116:O124(日柱=データなし)/M126:O133(時柱)
+   ・十二運（Image）タップ時：十二運ベースの「〜に対するイメージ」を追加表示
+     出典: R99:T106(年柱=親)/R108:T115(月柱=自分)/R117:T124(日柱=異性)/R126:T133(時柱=子供)
+   ============================================================ */
+const KARMA_EFFECT_BY_PILLAR = {
+  '年柱': { title: '前世の生き方', data: {"比肩": "自分らしい生き方を貫いてきた人です。他人に頼らない強さがあり、独立志向の人生を生きてきました。\n\n＜カルマ＞\n\n他人の意見を聞かない頑固さ、意固地な強情さが出やすい", "劫財": "目立つ生き方をしてきた人です。他人の目を常に意識し、人前では派手な振る舞いをして自分の存在感をアピールしてきました。\n\n＜カルマ＞\n\nルーズな性格、浪費好きな性格が出やすい", "食神": "のんびりと過ごしてきた人です。性格はおおらかで包容力がありますが、動作が遅いことで周囲の人を悩ますことがあるでしょう。\n\n＜カルマ＞\n\n愛情問題が出やすい", "傷官": "他人と争ってきた人です。気位が高く、考え方が潔癖なために、他人を包容するおおらかさが足りませんでした。\n\n＜カルマ＞\n\n他人との争い、口論、仕事での障害が出やすい", "偏財": "享楽的に生きてきた人です。性格は楽天的で物事を深く考えず、ときには軽率な行動に出ることがあるでしょう。\n\n＜カルマ＞\n\n軽率な面から異性関係、金銭関係で失敗しやすい", "正財": "家庭生活に愛着していた人です。性格は倹約的で質素、財産やお金に対して強い執着心を見せるでしょう。\n\n＜カルマ＞\n\nお金に関するトラブル、財産問題が出やすい", "偏官": "仕事に打ち込んできた人です。自分に厳しいストイックな人が多く、責任感が強くて考え方は非常にマジメです。\n\n＜カルマ＞\n\n何に対してもやりすぎてしまう", "正官": "仕事の権威を保ってきた人です。仕事に関しては強いこだわりを見せるでしょう。そのために他人と衝突することがあります。\n\n＜カルマ＞\n\n自分の立場を守ることに固執しやすい", "偏印": "不安定な生活を送ってきた人です。親密な人間関係、家族の絆が薄く、他人に対する信頼感が築けませんでした。\n\n＜カルマ＞\n\n人への信頼感が育ちにくい", "印綬": "引きこもりがちな生き方をしてきた人です。性格は慎重で保守的、自己愛が強く、自分の生活をしっかりと大切に守るでしょう。\n\n＜カルマ＞\n\n外で活動することに対する恐れが出やすい"} },
+  '月柱': { title: '前世の考え方', data: {"比肩": "前世において自意識が強かった人です。頭の回転が速く、洗練された鋭い感性を持っていた人でしょう。自意識が強いので他人に従うことは少なく、自分流の考え方を大事にしていました。\n\n＜カルマ＞\n\n自己本位な考え方に陥りやすい", "劫財": "前世において目立つことを考えていた人です。考え方は積極的で前向き、自分と関わる仲間内の人間関係を大事にするでしょう。\n\n＜カルマ＞\n\n地道な人生を嫌い、日々コツコツと働くよりも一攫千金的な考え方をする", "食神": "前世において享楽的で楽しいことが好きだった人です。明るく楽しいことを好み、多くの人に囲まれて賑やかに過ごすことを好むでしょう。\n\n＜カルマ＞\n\n楽しむことばかりを考え、欲望や怠惰な方向に流されやすくなる", "傷官": "前世において物事に厳しい考え方をしていた人です。物事を見る目はシャープで鋭く、直感力は鋭いほうでしょう。\n\n＜カルマ＞\n\n他人に厳しすぎるあまり、親密な人間関係を損ねてしまうことがある", "偏財": "前世において享楽的で遊び好きだった人です。考え方は楽天的で肯定的、人生を楽しく過ごそうと考えるでしょう。\n\n＜カルマ＞\n\n楽天的すぎる考え方から異性関係、金銭関係での軽率な失敗が多くなる", "正財": "前世において実利的で計算高かった人です。視野・考え方は狭く、金銭、物に対する独占欲は強いほうでしょう。\n\n＜カルマ＞\n\n物欲の強すぎる面から財産問題、金銭問題で他人と揉める傾向が出てくる", "偏官": "前世において何かに奉仕的に尽くしていた人です。考え方は厳しく自己抑制的で、甘えたルーズな生活を嫌うでしょう。\n\n＜カルマ＞\n\n理想を追うあまりに無理して体を壊したり、事故に遭ったりすることもある", "正官": "前世において権威的な立場を守っていた人です。責任感が強く、集団を統率することに関心が向きやすいでしょう。\n\n＜カルマ＞\n\n権威的なことにこだわるあまり、良いアイデアや斬新な考えを見逃してしまう", "偏印": "前世において空想的で探究心が強かった人です。現実感覚が弱い傾向にありますが、ときには天才的な発想をすることもあるでしょう。\n\n＜カルマ＞\n\n空想的な誇大妄想に陥ったり、根拠のない観念に振り回されることがある", "印綬": "前世において保守的で甘え心の強かった人です。考え方はナルシスト的で子供のようであり、自己愛の強い人になるでしょう。\n\n＜カルマ＞\n\n甘え心から親や配偶者への依存症になりやすい"} },
+  '時柱': { title: '前世の理想',   data: {"比肩": "前世においてカリスマ的なものに憧れていた人です。この想いは平凡な生活を嫌う反動として生じたものでしょう。\n\n＜カルマ＞\n\n見せかけの虚飾的なものに走りやすい", "劫財": "前世において世の中に認められたいと願っていた人です。この想いは自分の才能を発揮して、他人から賞賛されたいという気持ちがあります。\n\n＜カルマ＞\n\n自分の能力に対する過信が生まれてくる", "食神": "前世においてのんびりと楽しい生活に憧れていた人です。特に何か目標を持っているわけではなく、平和な暮らしが出来れば良いと考えていたのでしょう。\n\n＜カルマ＞\n\n生きがいを持てずに平凡な生き方になりやすい", "傷官": "前世において甘えた生活を断ち切り、厳しく律した生活をしたいと願っていた人です。この想いは自分の甘えた生活に対する反動として生じてきたものでしょう。\n\n＜カルマ＞\n\n周囲の人に厳しくなりやすい", "偏財": "前世において華やかで社交的な生活に憧れていた人です。この想いは質素で寂しい生活に対する反動として生じてきたものでしょう。\n\n＜カルマ＞\n\n享楽的で楽な生活へと流されやすい", "正財": "前世において家庭的な生活に憧れていた人です。この想いは満たされない生活に対する反動として生じてきたものでしょう。\n\n＜カルマ＞\n\nお金に対する執着心が生じやすい", "偏官": "前世において何かに尽くしたいという願いを持っていた人です。この想いは満たされない状況を変えたいという想いの反動として生じてきたものでしょう。\n\n＜カルマ＞\n\n何でも過剰にやりすぎる", "正官": "前世において権威を持った生活に憧れていた人です。この想いは強い力を持てずに弱かった生活の反動として生じてきたものでしょう。\n\n＜カルマ＞\n\n権力に対する執着心が出てくる", "偏印": "前世において浮世離れした隠棲生活に憧れていた人です。この想いは煩わしい現実生活に対する反動から生じてきたものでしょう。\n\n＜カルマ＞\n\n孤独な状況に陥りやすい", "印綬": "前世において静かで穏やかな生活に対する憧れを持っていた人です。この想いは人間関係の悩みが多かった反動として生じてきたものでしょう。\n\n＜カルマ＞\n\n人間嫌いになり、孤独な状況に陥りやすい"} },
+};
+const KARMA_IMAGE_BY_PILLAR = {
+  '年柱': { title: '親に対するイメージ',   data: {"胎": "前世において親との縁が薄く、親に恵まれなかった人です。親は自分にとって存在しないものであり、憧れの対象でもあったようです。\n\n＜カルマ＞\n\n親に対する強い憧れが出てくる", "養": "前世において親を大人しい従順なイメージで見ていた人です。親を尊敬するというよりは友人のような関係で接していたのでしょう。\n\n＜カルマ＞\n\n親に対する甘え心が出てくる", "長生": "前世において親を明るく肯定的なイメージで見ていた人です。親は自分の人生を明るくしてくれる存在であり、信頼できる人だったのでしょう。\n\n＜カルマ＞\n\n何でも親を頼り気味になる", "沐浴": "前世において親をおしゃれでカッコいいイメージで見ていた人です。親は風流な人であり、おしゃれで自慢できる存在だったのでしょう。\n\n＜カルマ＞\n\n内面的な心の交流が希薄になりやすい", "冠滞": "前世において親を威圧的なイメージで見ていた人です。親は自分に厳しい存在であり、甘えることのできない人だったのでしょう。\n\n＜カルマ＞\n\n親に対する自己主張が苦手になる", "建禄": "前世において親を包容力のある頼りにできる存在として見ていた人です。親は尊敬できる人であり、何かと頼りになる存在だったのでしょう。\n\n＜カルマ＞\n\n親を頼りにしすぎるために自立が難しくなる", "帝旺": "前世において親を威厳のある強いイメージで見ていた人です。威圧的な強い親で、近寄り難い対象だったのでしょう。\n\n＜カルマ＞\n\n親に頭が上がらず何でも従順になってしまう", "衰": "前世のおいて親を温和なイメージで見ていた人です。親は忍耐強い人であり、辛抱強く見守ってくれる存在だったのでしょう。\n\n＜カルマ＞\n\n親に対して苦労をかけている感覚が出てくる", "病": "前世において親に対する悩みを抱えていた人です。親は自分を悩ます存在ですが、離れたくても離れられない事情があったのでしょう。\n\n＜カルマ＞\n\n親に対する苦手意識が出てくる", "死": "前世において親を悲観的なイメージで見ていた人です。親に対する悲しさがあったのでしょう。\n\n＜カルマ＞\n\n親に対する頼りがいのなさと無力感が出てくる", "墓": "前世において親を老年のイメージで見ていた人です。親は保護するべき対象であり、守るべき存在だったのでしょう。\n\n＜カルマ＞\n\n過度に親のことを心配する気持ちが出てくる", "絶": "前世において親に対して拒絶的なイメージを持っていた人です。親は対立する関係であり、拒否する対象であったようです。\n\n＜カルマ＞\n\n親に対する信頼感を築くことが難しくなる"} },
+  '月柱': { title: '自分に対するイメージ', data: {"胎": "前世において夢心地の状態で過ごしてきた人です。自分に対する自己イメージが弱く、現実感覚は弱いでしょう。\n\n＜カルマ＞\n\n現実逃避的な考え方が出てくる", "養": "前世において子供のように純粋な考え方をしてきた人です。自分に対する自信は弱く、厳しい状況になると周囲の人に対する甘え心が出てくるでしょう。\n\n＜カルマ＞\n\n自分への自信と自立心が弱くなる", "長生": "前世において明るく肯定的な考え方をしてきた人です。物事にあっさりとしていますが、その反動として人間の暗い側面に関わることを避けたがるでしょう。\n\n＜カルマ＞\n\nすぐに行動して失敗することが多くなる", "沐浴": "前世においておしゃれで風流な考え方をしてきた人です。世俗的な苦労や考え方が嫌いで、楽しく風雅なことを好むでしょう。\n\n＜カルマ＞\n\n刺激や変化を求めて日常生活が疎かになる", "冠滞": "前世において負けん気の強い考え方をしてきた人です。他人に負けることが嫌いで、強く意地を通すことがあるでしょう。\n\n＜カルマ＞\n\n自分の思いを通して、周囲の人を振り回す", "建禄": "前世において独創的なものを打ち立てようと考えてきた人です。自分の才能に自信を持っており、それを外に表現することを好むでしょう。\n\n＜カルマ＞\n\n自信を持ちすぎて自信過剰になる", "帝旺": "前世においてリーダー的な強気の考え方をしてきた人です。周囲の人に対する支配欲が強く、自分の弱みを見せることがありません。\n\n＜カルマ＞\n\n横暴さが過ぎて人に嫌われることがある", "衰": "前世において忍耐強く理性的な考え方をしてきた人です。他人との争いを好まず、自分を謙遜する面があるでしょう。\n\n＜カルマ＞\n\n何でも忍耐強く我慢してしまうために、不利な立場に甘んじてしまう", "病": "前世において悩みながらもこだわりを持って努力してきた人です。性格は忍耐強く、粘り強さがありますが、クヨクヨと悩みやすいでしょう。\n\n＜カルマ＞\n\n物事に執着しすぎて方向転換ができない", "死": "前世において悲観的な考え方をしてきた人です。人生を肯定的に捉えることができずに気持ちが内向しやすいでしょう。\n\n＜カルマ＞\n\n現実逃避に陥ることがある", "墓": "前世において無欲な考え方をしてきた人です。シンプルな生活を好み、派手で虚飾的なものを嫌うでしょう。\n\n＜カルマ＞\n\n包容力に乏しく、変化することを避ける傾向が出てくる", "絶": "前世において自信喪失的な考え方に陥っていた人です。自分に対する自己評価が低いために、自分に自信を持つことができません。\n\n＜カルマ＞\n\n少しのことで自虐的になりやすく、投げやりになる"} },
+  '日柱': { title: '異性に対するイメージ', data: {"胎": "前世において異性との関わりが少なく、異性に対して理想のイメージを抱いていた人です。恋愛に関しては現実を見ないで想像ばかりが膨らみやすいでしょう。\n\n＜カルマ＞\n\n異性との関わり、縁が薄い傾向になる", "養": "前世において異性に対して子供のような純粋なイメージを抱いていた人です。異性に対して純粋に考えすぎる傾向があるでしょう。\n\n＜カルマ＞\n\n理想と現実のギャップに傷つきやすくなる", "長生": "前世において異性に対して明るく素直なイメージを抱いていた人です。異性に対して否定的なイメージがなく、恋愛には積極的で楽天的な面があるでしょう。\n\n＜カルマ＞\n\n異性に対する警戒感がないために失敗することがある", "沐浴": "前世においておしゃれで風流な異性のイメージを持っていた人です。異性に対しての安定したイメージがなく、恋愛では移り気で八方美人な面があるでしょう。\n\n＜カルマ＞\n\n異性関係で縁が変わりやすい", "冠滞": "前世において威圧的な異性と縁が深かった人です。威圧的と言っても単に威張ってるという意味ではなく、内心では相手を頼りにしているということ。\n\n＜カルマ＞\n\n強すぎる異性に振り回されてしまうことがある", "建禄": "前世において異性に対して豊満なイメージを抱いていた人です。異性に対する甘え心や依存心が強く、母性的なものに弱い面が出てくるでしょう。\n\n＜カルマ＞\n\n性愛的なものに溺れやすい面が出てくる", "帝旺": "前世において異性に対して強権的なイメージを抱いていた人です。威厳があって堂々としたリーダーシップのある人に対して憧れを持つでしょう。\n\n＜カルマ＞\n\n強い権力を持つものに対してなびきやすい", "衰": "前世において異性に対して紳士的、淑女的なイメージを抱いていた人です。人間的に気品のある人や、穏やかな人柄を好むでしょう。\n\n＜カルマ＞\n\n異性に対して堅苦しい面が出てくる", "病": "前世において異性に対してクヨクヨと悩んでいた人です。そうしたイメージを抱くには、実際にそうした異性や配偶者がいた可能性が高いでしょう。\n\n＜カルマ＞\n\n再びそうした自分を悩ます人を選びやすい", "死": "前世において異性に対して悲観的なマイナスイメージを持っていた人です。派手で目立つ人よりも、静かで理知的な人を好むでしょう。\n\n＜カルマ＞\n\n恋愛や結婚に対しての苦手意識が出てくる", "墓": "前世において異性に対して落ち着きのある成熟したイメージを抱いていた人です。年齢のいった、思慮深い穏やかな人を好むでしょう。\n\n＜カルマ＞\n\n地味で変化に乏しい恋愛になりやすい", "絶": "前世において異性に対して拒絶的なイメージを抱いていた人です。こうしたイメージを抱くには、実際に恋愛などで失敗した経験があったことを物語っています。\n\n＜カルマ＞\n\n再び失恋的な失敗を繰り返しやすい"} },
+  '時柱': { title: '子供に対するイメージ', data: {"胎": "前世において子供との触れ合いが少なかった人です。実際に子供がいなかったのかもしれません。子供に対する関心は薄いほうでしょう。\n\n＜カルマ＞\n\n子供に対しての苦手意識がでてくる", "養": "前世において子供を純粋で従順なイメージで見ていた人です。子供に対しての思い入れは強いほうでしょう。\n\n＜カルマ＞\n\n子供が成長しても、いつまでも子供扱いしてしまう", "長生": "前世において子供を明るく肯定的なイメージで見ていた人です。子供に対する実際的な面というよりも、理想化されたイメージが強いようです。\n\n＜カルマ＞\n\n子供を信じすぎる傾向が出てくる", "沐浴": "前世において子供とおしゃれな関係を築いていた人です。実生活で深く関わるよりも、表面的な付き合いをしていたと思われます。\n\n＜カルマ＞\n\n内面的な心の交流が弱くなる", "冠滞": "前世において子供に対して威圧的なイメージを抱いていた人です。親に従う子ではなく、威張るような子供と関わっていた可能性が高いでしょう。\n\n＜カルマ＞\n\n何でも子供の言いなりになってしまう", "建禄": "前世において子供に対して包容的な親近感を抱いていた人です。子供は独立した立場を築いており、高い地位を得ていた可能性が高いでしょう。\n\n＜カルマ＞\n\n子供に対する期待心が強まる", "帝旺": "前世において子供に対して威厳的なイメージを抱いていた人です。子供は権力を持つ立場の人であり、社会的な地位を築いていた可能性が高いでしょう。\n\n＜カルマ＞\n\n子供に対して弱くなる", "衰": "前世において子供に対して頼りになるイメージを抱いていた人です。子供は忍耐強く自分を助けてくれる存在だったのかもしれません。\n\n＜カルマ＞\n\n子供を頼りすぎる面が出てくる", "病": "前世において子供のことでクヨクヨ悩んでいた人です。子供は何かの事情があって親と離れられず、そのことで自分が精神的に患っていた可能性が高いでしょう。\n\n＜カルマ＞\n\n再び同じような状況になりやすい", "死": "前世において子供のことで悲観的になっていた人です。子供に何らかの不幸があり、そのことで悩んでいた可能性が高いでしょう。\n\n＜カルマ＞\n\n再び同じような状況になりやすい", "墓": "前世において子供に対して保護者的なイメージを抱いていた人です。子供は弱者的な立場にある存在であり、助けなければならない対象であったようです。\n\n＜カルマ＞\n\n子供に対して心配性の面がでてくる", "絶": "前世において子供のことで拒絶的な思いを抱いていた人です。子供は親を悩ます存在であり、そうした子供は自分にとって必要ないと考えた可能性が高いでしょう。\n\n＜カルマ＞\n\n子供に恵まれない状況になりやすい"} },
+};
+
+
+function openKanshiPopover(type, char, label, extra){
   const titleEl = document.getElementById('kanshiPopTitle');
   const bodyEl = document.getElementById('kanshiPopBody');
   const backdrop = document.getElementById('kanshiPopBackdrop');
   if(!titleEl || !bodyEl || !backdrop) return;
 
-  let text, kindLabel;
+  let text, kindLabel, karmaBlock=null;
   if(type === 'kan'){
     text = KAN_DESC[char];
     kindLabel = (label ? label.replace('柱','') : '') + '天干';
@@ -3468,14 +3822,48 @@ function openKanshiPopover(type, char, label){
   } else if(type === 'effect'){
     text = EFFECT_DESC[char] || EFFECT_DESC[EFFECT_ALIAS[char]];
     kindLabel = (label ? label.replace('柱','') : '') + '通変星';
+    const km = KARMA_EFFECT_BY_PILLAR[label];
+    if(km && km.data[char]){
+      karmaBlock = { title: km.title, text: km.data[char] };
+    } else if(km && EFFECT_ALIAS[char] && km.data[EFFECT_ALIAS[char]]){
+      karmaBlock = { title: km.title, text: km.data[EFFECT_ALIAS[char]] };
+    }
   } else if(type === 'image'){
     text = IMAGE_DESC[char] || IMAGE_DESC[IMAGE_ALIAS[char]];
     kindLabel = (label ? label.replace('柱','') : '') + '十二運';
+    const km = KARMA_IMAGE_BY_PILLAR[label];
+    if(km && km.data[char]){
+      karmaBlock = { title: km.title, text: km.data[char] };
+    } else if(km && IMAGE_ALIAS[char] && km.data[IMAGE_ALIAS[char]]){
+      karmaBlock = { title: km.title, text: km.data[IMAGE_ALIAS[char]] };
+    }
   }
   if(!text){ text = '該当する解説データが見つかりませんでした。'; }
 
   titleEl.innerHTML = `<span class="kp-char">${char}</span>${kindLabel}`;
-  bodyEl.textContent = text;
+
+  bodyEl.innerHTML = '';
+  const mainP = document.createElement('div');
+  mainP.className = 'kp-section';
+  mainP.textContent = text;
+  bodyEl.appendChild(mainP);
+
+  if(karmaBlock){
+    const divider = document.createElement('div');
+    divider.className = 'kp-karma-divider';
+    bodyEl.appendChild(divider);
+
+    const karmaTitle = document.createElement('div');
+    karmaTitle.className = 'kp-karma-title';
+    karmaTitle.textContent = '★ ' + karmaBlock.title + '（前世・カルマ）';
+    bodyEl.appendChild(karmaTitle);
+
+    const karmaP = document.createElement('div');
+    karmaP.className = 'kp-section kp-karma-text';
+    karmaP.textContent = karmaBlock.text;
+    bodyEl.appendChild(karmaP);
+  }
+
   backdrop.classList.add('open');
 }
 
@@ -3497,7 +3885,8 @@ function closeKanshiPopover(){
         const type = cell.getAttribute('data-kanshi-type');
         const char = cell.getAttribute('data-kanshi-char');
         const label = cell.getAttribute('data-kanshi-label');
-        openKanshiPopover(type, char, label);
+        const extra = cell.getAttribute('data-kanshi-extra');
+        openKanshiPopover(type, char, label, extra);
         e.stopPropagation();
         return;
       }

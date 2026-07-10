@@ -3210,17 +3210,26 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   const toolBtns = toolbar.querySelectorAll('.dt-tool');
   const colorBtns = toolbar.querySelectorAll('.dt-color');
 
+  // マーカー（ハイライター）は重ね塗りしても濃くならないよう、
+  // 鉛筆用レイヤーとマーカー用レイヤーを分けて管理し、
+  // マーカーレイヤーは常に不透明で描いてから最後に1回だけ薄く合成する。
+  const inkLayer = document.createElement('canvas');
+  const markerLayer = document.createElement('canvas');
+  const inkCtx = inkLayer.getContext('2d');
+  const markerCtx = markerLayer.getContext('2d');
+
   let drawMode = false;
   let currentTool = 'pencil';
   let currentColor = '#211C16';
   let strokes = [];
   let curStroke = null;
   const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const MARKER_ALPHA = 0.35;
 
   const TOOL_CFG = {
-    pencil: { width: 3,  alpha: 1.0,  composite: 'source-over' },
-    marker: { width: 18, alpha: 0.35, composite: 'multiply' },
-    eraser: { width: 28, alpha: 1.0,  composite: 'destination-out' },
+    pencil: { width: 3  },
+    marker: { width: 18 },
+    eraser: { width: 28 },
   };
 
   function docSize(){
@@ -3228,6 +3237,12 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
       w: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
       h: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
     };
+  }
+
+  function setLayerSize(el, elCtx, w, h){
+    el.width = Math.max(1, Math.round(w*dpr));
+    el.height = Math.max(1, Math.round(h*dpr));
+    elCtx.setTransform(dpr,0,0,dpr,0,0);
   }
 
   function resizeCanvas(){
@@ -3239,77 +3254,139 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     canvas.style.height = h+'px';
     canvas._cssW = w; canvas._cssH = h;
     ctx.setTransform(dpr,0,0,dpr,0,0);
+    setLayerSize(inkLayer, inkCtx, w, h);
+    setLayerSize(markerLayer, markerCtx, w, h);
     redrawAll();
   }
 
-  function drawStroke(s){
+  // 1本分のストローク（線）をレイヤーに描画する。マーカーも鉛筆もこのレイヤー内では
+  // 常にalpha=1（不透明）で描くため、同じストローク内で自己交差しても濃くならない。
+  function paintStrokeToLayer(layerCtx, s){
     if(!s.points.length) return;
-    ctx.save();
-    ctx.globalCompositeOperation = s.composite;
-    ctx.globalAlpha = s.alpha;
-    ctx.strokeStyle = s.color;
-    ctx.lineWidth = s.width;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
+    layerCtx.save();
+    layerCtx.globalCompositeOperation = (s.tool === 'eraser') ? 'destination-out' : 'source-over';
+    layerCtx.globalAlpha = 1;
+    layerCtx.strokeStyle = s.color;
+    layerCtx.lineWidth = s.width;
+    layerCtx.lineCap = 'round';
+    layerCtx.lineJoin = 'round';
+    layerCtx.beginPath();
     if(s.points.length === 1){
-      ctx.moveTo(s.points[0].x, s.points[0].y);
-      ctx.lineTo(s.points[0].x+0.01, s.points[0].y+0.01);
+      layerCtx.moveTo(s.points[0].x, s.points[0].y);
+      layerCtx.lineTo(s.points[0].x+0.01, s.points[0].y+0.01);
     } else {
-      ctx.moveTo(s.points[0].x, s.points[0].y);
-      for(let i=1;i<s.points.length;i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+      layerCtx.moveTo(s.points[0].x, s.points[0].y);
+      for(let i=1;i<s.points.length;i++) layerCtx.lineTo(s.points[i].x, s.points[i].y);
     }
-    ctx.stroke();
+    layerCtx.stroke();
+    layerCtx.restore();
+  }
+
+  // 新しい1セグメント（直近2点）だけを描く（リアルタイム描画用・軽量）
+  function paintSegmentToLayer(layerCtx, s){
+    const n = s.points.length;
+    if(n < 2) return;
+    layerCtx.save();
+    layerCtx.globalCompositeOperation = (s.tool === 'eraser') ? 'destination-out' : 'source-over';
+    layerCtx.globalAlpha = 1;
+    layerCtx.strokeStyle = s.color;
+    layerCtx.lineWidth = s.width;
+    layerCtx.lineCap = 'round';
+    layerCtx.lineJoin = 'round';
+    layerCtx.beginPath();
+    layerCtx.moveTo(s.points[n-2].x, s.points[n-2].y);
+    layerCtx.lineTo(s.points[n-1].x, s.points[n-1].y);
+    layerCtx.stroke();
+    layerCtx.restore();
+  }
+
+  function layersForTool(tool){
+    // 消しゴムは鉛筆・マーカー両方から消す。マーカーは専用レイヤーのみ。鉛筆はinkレイヤーのみ。
+    if(tool === 'eraser') return [inkCtx, markerCtx];
+    if(tool === 'marker') return [markerCtx];
+    return [inkCtx];
+  }
+
+  // ink/markerの2レイヤーを最終的なキャンバスに1回だけ合成する
+  // （マーカーはここで初めてMARKER_ALPHAを掛けるので、何本重ねても濃くならない）
+  function composite(){
+    ctx.clearRect(0,0,canvas._cssW||0,canvas._cssH||0);
+    ctx.save();
+    ctx.globalAlpha = MARKER_ALPHA;
+    ctx.drawImage(markerLayer, 0, 0, canvas._cssW, canvas._cssH);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.drawImage(inkLayer, 0, 0, canvas._cssW, canvas._cssH);
     ctx.restore();
   }
 
   function redrawAll(){
-    ctx.clearRect(0,0,canvas.width/dpr,canvas.height/dpr);
-    strokes.forEach(drawStroke);
+    inkCtx.clearRect(0,0,inkLayer.width/dpr, inkLayer.height/dpr);
+    markerCtx.clearRect(0,0,markerLayer.width/dpr, markerLayer.height/dpr);
+    strokes.forEach(s=>{
+      layersForTool(s.tool).forEach(lc => paintStrokeToLayer(lc, s));
+    });
+    composite();
   }
 
-  function getPos(e){
+  function getPosFromXY(clientX, clientY){
     const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   }
 
-  function pointerDown(e){
+  function startStroke(clientX, clientY){
     if(!drawMode) return;
-    e.preventDefault();
-    canvas.setPointerCapture(e.pointerId);
     const cfg = TOOL_CFG[currentTool];
     curStroke = {
-      color: currentColor, width: cfg.width, alpha: cfg.alpha,
-      composite: cfg.composite, points: [getPos(e)],
+      tool: currentTool, color: currentColor, width: cfg.width,
+      points: [getPosFromXY(clientX, clientY)],
     };
     strokes.push(curStroke);
-    drawStroke(curStroke);
+    layersForTool(curStroke.tool).forEach(lc => paintStrokeToLayer(lc, curStroke));
+    composite();
   }
-  function pointerMove(e){
+  function moveStroke(clientX, clientY){
+    if(!drawMode || !curStroke) return;
+    curStroke.points.push(getPosFromXY(clientX, clientY));
+    layersForTool(curStroke.tool).forEach(lc => paintSegmentToLayer(lc, curStroke));
+    composite();
+  }
+  function endStroke(){ curStroke = null; }
+
+  // --- マウス操作（PC） ---
+  canvas.addEventListener('mousedown', function(e){
+    if(!drawMode) return;
+    e.preventDefault();
+    startStroke(e.clientX, e.clientY);
+  });
+  canvas.addEventListener('mousemove', function(e){
     if(!drawMode || !curStroke) return;
     e.preventDefault();
-    curStroke.points.push(getPos(e));
-    const n = curStroke.points.length;
-    if(n < 2) return;
-    ctx.save();
-    ctx.globalCompositeOperation = curStroke.composite;
-    ctx.globalAlpha = curStroke.alpha;
-    ctx.strokeStyle = curStroke.color;
-    ctx.lineWidth = curStroke.width;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(curStroke.points[n-2].x, curStroke.points[n-2].y);
-    ctx.lineTo(curStroke.points[n-1].x, curStroke.points[n-1].y);
-    ctx.stroke();
-    ctx.restore();
-  }
-  function pointerUp(){ curStroke = null; }
+    moveStroke(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', endStroke);
 
-  canvas.addEventListener('pointerdown', pointerDown);
-  canvas.addEventListener('pointermove', pointerMove);
-  canvas.addEventListener('pointerup', pointerUp);
-  canvas.addEventListener('pointercancel', pointerUp);
-  canvas.addEventListener('pointerleave', pointerUp);
+  // --- タッチ操作（iPad／スマホ）。Pointer Eventsに頼らず直接touchイベントを使うことで、
+  //     iPadのSafari／ホーム画面追加時などでも確実に反応するようにしている ---
+  canvas.addEventListener('touchstart', function(e){
+    if(!drawMode) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    if(t) startStroke(t.clientX, t.clientY);
+  }, {passive:false});
+  canvas.addEventListener('touchmove', function(e){
+    if(!drawMode || !curStroke) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    if(t) moveStroke(t.clientX, t.clientY);
+  }, {passive:false});
+  canvas.addEventListener('touchend', function(e){
+    if(!drawMode) return;
+    e.preventDefault();
+    endStroke();
+  }, {passive:false});
+  canvas.addEventListener('touchcancel', function(e){ endStroke(); }, {passive:false});
 
   function setDrawMode(on){
     drawMode = on;

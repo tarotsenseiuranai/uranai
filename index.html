@@ -3223,7 +3223,15 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   let currentColor = '#211C16';
   let strokes = [];
   let curStroke = null;
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const NATIVE_DPR = Math.max(1, window.devicePixelRatio || 1);
+  // iOS Safari等はcanvasの内部ピクセル数（幅×高さ）に上限があり、超えると
+  // 描画が一切反映されなくなる（無音で失敗する）。「鑑定する」後はテーブルが
+  // 大量に増えてページがとても長くなるため、そのままdevicePixelRatioで
+  // 拡大すると上限を超えてしまい、お絵かきができなくなっていた。
+  // ページが長いときは自動で解像度を下げて、必ず上限内に収める。
+  const MAX_CANVAS_AREA = 15000000; // 物理ピクセル換算での安全な面積上限
+  const MAX_CANVAS_DIM = 8000;      // 物理ピクセルでの安全な辺の上限
+  let dpr = NATIVE_DPR;
   const MARKER_ALPHA = 0.35;
 
   const TOOL_CFG = {
@@ -3239,6 +3247,16 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     };
   }
 
+  function computeEffectiveDpr(w, h){
+    let d = NATIVE_DPR;
+    if(w*d*h*d > MAX_CANVAS_AREA){
+      d = Math.sqrt(MAX_CANVAS_AREA / (w*h));
+    }
+    if(w*d > MAX_CANVAS_DIM) d = Math.min(d, MAX_CANVAS_DIM/w);
+    if(h*d > MAX_CANVAS_DIM) d = Math.min(d, MAX_CANVAS_DIM/h);
+    return Math.max(0.02, Math.min(NATIVE_DPR, d));
+  }
+
   function setLayerSize(el, elCtx, w, h){
     el.width = Math.max(1, Math.round(w*dpr));
     el.height = Math.max(1, Math.round(h*dpr));
@@ -3248,6 +3266,7 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   function resizeCanvas(){
     const {w,h} = docSize();
     if(canvas._cssW === w && canvas._cssH === h) return;
+    dpr = computeEffectiveDpr(w, h);
     canvas.width = Math.max(1, Math.round(w*dpr));
     canvas.height = Math.max(1, Math.round(h*dpr));
     canvas.style.width = w+'px';

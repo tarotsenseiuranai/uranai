@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#937234">
-<title>鑑定支援ツール｜命式・大運年表・五星三心・九星気学</title>
+<title>鑑定支援ツール｜命式・年運表・五星三心・九星気学</title>
 <style>
 :root{
   --bg:#F7F2E7;--panel:#FFFDF8;--ink:#211C16;--ink-soft:#5B5347;
@@ -549,7 +549,7 @@ td.kanshi-tap::after{
       <a href="#sec-stats" data-toc-target="sec-stats">基本情報</a>
       <a href="#sec-daiun" data-toc-target="sec-daiun">大運一覧</a>
       <a href="#sec-personality" data-toc-target="sec-personality">性格・才能グラフ</a>
-      <a href="#sec-nenpyo" data-toc-target="sec-nenpyo">大運年表／五星三心／九星気学</a>
+      <a href="#sec-nenpyo" data-toc-target="sec-nenpyo">年運表／五星三心／九星気学</a>
       <a href="#sec-getsuun" data-toc-target="sec-getsuun">月運表</a>
       <a href="#sec-aisho" data-toc-target="sec-aisho">相性占い（宿曜）</a>
     </nav>
@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', initAuth);
 <header class="pg">
   <div class="ey">PRIVATE DIVINATION TOOL</div>
   <h1>鑑定支援ツール</h1>
-  <p>命式（干支暦）・大運年表・五星三心・九星気学をまとめて算出します</p>
+  <p>命式（干支暦）・年運表・五星三心・九星気学をまとめて算出します</p>
 </header>
 
 <div class="panel">
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', initAuth);
   </div>
 
   <div class="panel" id="sec-nenpyo">
-    <h2>大運年表 ／ 五星三心 ／ 九星気学</h2>
+    <h2>年運表 ／ 五星三心 ／ 九星気学</h2>
     <p class="sub">五星三心の色：<span style="background:var(--blue-pale);padding:2px 6px;">解放・幸運・開運</span>　<span style="background:var(--purple-pale);padding:2px 6px;">整理・乱気・裏運気</span></p>
     <p class="sub">九星中宮の色：<span style="background:var(--blue-pale);padding:2px 6px;">相生関係</span>　<span style="background:var(--purple-pale);padding:2px 6px;">同会・対冲</span></p>
     <p class="sub"><span style="background:#EDE4F4;padding:2px 6px;color:#5A2D82;font-weight:700;">💀 死神の年</span>　宿命の天干（年/月/時）が大運天干を五行相剋する年（日干は除く）。年列・大運列のみ淡い紫で表示。</p>
@@ -1968,6 +1968,7 @@ function renderDaiunTable(){
     </tr>`;
   });
   document.getElementById('daiunTable').innerHTML=rows;
+  document.dispatchEvent(new CustomEvent('kantei:content-changed'));
 }
 
 
@@ -2966,6 +2967,7 @@ function renderTable(){
     </tr>`;
   }
   document.getElementById('yearTable').innerHTML=rows;
+  document.dispatchEvent(new CustomEvent('kantei:content-changed'));
 }
 /**
  * 年運のエネルギースコアを計算する
@@ -3385,12 +3387,20 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   }
 
   function getPosFromXY(clientX, clientY){
-    const rect = canvas.getBoundingClientRect();
+    // ストローク中はrectをキャッシュして使い回す。getBoundingClientRect()は
+    // レイアウトを強制的に確定させる（forced reflow）ため、動かすたびに毎回呼ぶと
+    // ページが重いときに顕著にカクつく原因になる。
+    const rect = cachedRect || canvas.getBoundingClientRect();
     return { x: clientX - rect.left, y: clientY - rect.top };
   }
 
+  let cachedRect = null;
+  let pendingMoves = [];
+  let rafScheduled = false;
+
   function startStroke(clientX, clientY){
     if(!drawMode) return;
+    cachedRect = canvas.getBoundingClientRect();
     const cfg = TOOL_CFG[currentTool];
     curStroke = {
       tool: currentTool, color: currentColor, width: cfg.width,
@@ -3402,14 +3412,38 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     const pad = curStroke.width/2 + 3;
     compositeRegion(p.x-pad, p.y-pad, pad*2, pad*2);
   }
-  function moveStroke(clientX, clientY){
+
+  // touchmove/mousemoveは端末によっては1秒間に何十回も発火するため、毎回すぐに
+  // 描画・合成すると重い。1フレーム（requestAnimationFrame）ぶんまとめて
+  // 処理することで、描画コストを大きく減らしつつ見た目の滑らかさは保つ。
+  function queueMove(clientX, clientY){
     if(!drawMode || !curStroke) return;
-    curStroke.points.push(getPosFromXY(clientX, clientY));
-    layersForTool(curStroke.tool).forEach(lc => paintSegmentToLayer(lc, curStroke));
-    const rect = segmentDirtyRect(curStroke);
-    compositeRegion(rect.x, rect.y, rect.w, rect.h);
+    pendingMoves.push(clientX, clientY);
+    if(!rafScheduled){
+      rafScheduled = true;
+      requestAnimationFrame(flushPendingMoves);
+    }
   }
-  function endStroke(){ curStroke = null; }
+  function flushPendingMoves(){
+    rafScheduled = false;
+    if(!drawMode || !curStroke || !pendingMoves.length){ pendingMoves = []; return; }
+    const pts = pendingMoves; pendingMoves = [];
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    for(let i=0; i<pts.length; i+=2){
+      curStroke.points.push(getPosFromXY(pts[i], pts[i+1]));
+      layersForTool(curStroke.tool).forEach(lc => paintSegmentToLayer(lc, curStroke));
+      const r = segmentDirtyRect(curStroke);
+      minX = Math.min(minX, r.x); minY = Math.min(minY, r.y);
+      maxX = Math.max(maxX, r.x+r.w); maxY = Math.max(maxY, r.y+r.h);
+    }
+    compositeRegion(minX, minY, maxX-minX, maxY-minY);
+  }
+  function endStroke(){
+    // 溜まっている分を最後に一度反映してから終了する
+    if(pendingMoves.length) flushPendingMoves();
+    curStroke = null;
+    cachedRect = null;
+  }
 
   // --- マウス操作（PC） ---
   canvas.addEventListener('mousedown', function(e){
@@ -3420,7 +3454,7 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   canvas.addEventListener('mousemove', function(e){
     if(!drawMode || !curStroke) return;
     e.preventDefault();
-    moveStroke(e.clientX, e.clientY);
+    queueMove(e.clientX, e.clientY);
   });
   window.addEventListener('mouseup', endStroke);
 
@@ -3436,7 +3470,7 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     if(!drawMode || !curStroke) return;
     e.preventDefault();
     const t = e.touches[0];
-    if(t) moveStroke(t.clientX, t.clientY);
+    if(t) queueMove(t.clientX, t.clientY);
   }, {passive:false});
   canvas.addEventListener('touchend', function(e){
     if(!drawMode) return;
@@ -3505,9 +3539,17 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     });
   }
 
-  window.addEventListener('resize', resizeCanvas);
-  // テーブル再描画などでページの高さが変わることがあるため、定期的にキャンバスサイズを同期
-  setInterval(resizeCanvas, 1000);
+  // ★ ページの高さは「テーブルが再描画された時」だけ変わるので、常時ポーリング
+  //   （1秒おきにscrollHeightを読む＝強制レイアウト）はせず、実際に内容が
+  //   変わったタイミング（kantei:content-changed）とウィンドウリサイズ時だけ
+  //   同期する。これにより通常時の余計な負荷・カクつきをなくす。
+  let resizeDebounce = null;
+  function scheduleResize(){
+    clearTimeout(resizeDebounce);
+    resizeDebounce = setTimeout(resizeCanvas, 150);
+  }
+  window.addEventListener('resize', scheduleResize);
+  document.addEventListener('kantei:content-changed', scheduleResize);
   window.addEventListener('DOMContentLoaded', resizeCanvas);
   resizeCanvas();
 })();
@@ -3903,6 +3945,7 @@ function renderGetsuunTable() {
 
   document.getElementById('getsuunTable').innerHTML = rows;
   document.getElementById('getsuunDebug').innerHTML = '';
+  document.dispatchEvent(new CustomEvent('kantei:content-changed'));
 }
 
 

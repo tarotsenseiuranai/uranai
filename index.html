@@ -3234,10 +3234,10 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   const MAX_CANVAS_AREA = 15000000; // 物理ピクセル換算での安全な面積上限
   const MAX_CANVAS_DIM = 8000;      // 物理ピクセルでの安全な辺の上限
   let dpr = NATIVE_DPR;
-  const MARKER_ALPHA = 0.35;
+  const MARKER_ALPHA = 0.5;
 
   const TOOL_CFG = {
-    pencil: { width: 3  },
+    pencil: { width: 5  },
     marker: { width: 18 },
     eraser: { width: 28 },
   };
@@ -3292,20 +3292,36 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     layerCtx.lineCap = 'round';
     layerCtx.lineJoin = 'round';
     layerCtx.beginPath();
-    if(s.points.length === 1){
-      layerCtx.moveTo(s.points[0].x, s.points[0].y);
-      layerCtx.lineTo(s.points[0].x+0.01, s.points[0].y+0.01);
+    const pts = s.points;
+    if(pts.length === 1){
+      layerCtx.moveTo(pts[0].x, pts[0].y);
+      layerCtx.lineTo(pts[0].x+0.01, pts[0].y+0.01);
+    } else if(pts.length === 2){
+      layerCtx.moveTo(pts[0].x, pts[0].y);
+      layerCtx.lineTo(pts[1].x, pts[1].y);
     } else {
-      layerCtx.moveTo(s.points[0].x, s.points[0].y);
-      for(let i=1;i<s.points.length;i++) layerCtx.lineTo(s.points[i].x, s.points[i].y);
+      // 各点の中点同士を二次ベジェで結ぶ（標準的な手描き平滑化）ことで、
+      // 直線区間の連なりによる角ばった／ギザギザした見た目を解消する。
+      // 描画コール数は従来（点の数-1回）とほぼ同じなので処理負荷は変わらない。
+      layerCtx.moveTo(pts[0].x, pts[0].y);
+      for(let i=1;i<pts.length-1;i++){
+        const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
+        layerCtx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+      }
+      const last=pts[pts.length-1];
+      layerCtx.lineTo(last.x, last.y);
     }
     layerCtx.stroke();
     layerCtx.restore();
   }
 
-  // 新しい1セグメント（直近2点）だけを描く（リアルタイム描画用・軽量）
+  // 新しい1点ぶんだけを描く（リアルタイム描画用・軽量）。
+  // 直近3点（p0,p1,p2）の中点→p1→中点、を二次ベジェで結ぶことで、
+  // 1点ずつ描き足すリアルタイム描画でも直線の折れ線ではなく滑らかな曲線になる
+  // （1点あたりの描画コールは従来通り1回なので処理速度は変わらない）。
   function paintSegmentToLayer(layerCtx, s){
-    const n = s.points.length;
+    const pts = s.points;
+    const n = pts.length;
     if(n < 2) return;
     layerCtx.save();
     layerCtx.globalCompositeOperation = (s.tool === 'eraser') ? 'destination-out' : 'source-over';
@@ -3315,8 +3331,16 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     layerCtx.lineCap = 'round';
     layerCtx.lineJoin = 'round';
     layerCtx.beginPath();
-    layerCtx.moveTo(s.points[n-2].x, s.points[n-2].y);
-    layerCtx.lineTo(s.points[n-1].x, s.points[n-1].y);
+    if(n === 2){
+      layerCtx.moveTo(pts[0].x, pts[0].y);
+      layerCtx.lineTo(pts[1].x, pts[1].y);
+    } else {
+      const p0=pts[n-3], p1=pts[n-2], p2=pts[n-1];
+      const startX=(p0.x+p1.x)/2, startY=(p0.y+p1.y)/2;
+      const endX=(p1.x+p2.x)/2, endY=(p1.y+p2.y)/2;
+      layerCtx.moveTo(startX, startY);
+      layerCtx.quadraticCurveTo(p1.x, p1.y, endX, endY);
+    }
     layerCtx.stroke();
     layerCtx.restore();
   }
@@ -3369,12 +3393,17 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   // 直近のセグメント（線1本分の区間）を囲むダーティ矩形（ブラシ幅ぶん余白を取る）
   function segmentDirtyRect(s){
     const n = s.points.length;
-    const p0 = s.points[n-2] || s.points[0];
-    const p1 = s.points[n-1];
+    // 二次ベジェは直近3点（p0,p1,p2）を使って曲線を描くため、ダーティ矩形も
+    // その3点分をカバーする（曲線はこの3点の外側にはみ出さない）。
+    const pts = (n>=3) ? [s.points[n-3], s.points[n-2], s.points[n-1]]
+                        : [s.points[n-2]||s.points[0], s.points[n-1]];
     const pad = s.width/2 + 3;
-    const minX = Math.min(p0.x, p1.x) - pad, maxX = Math.max(p0.x, p1.x) + pad;
-    const minY = Math.min(p0.y, p1.y) - pad, maxY = Math.max(p0.y, p1.y) + pad;
-    return { x:minX, y:minY, w:maxX-minX, h:maxY-minY };
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    for(const p of pts){
+      minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x);
+      minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y);
+    }
+    return { x:minX-pad, y:minY-pad, w:(maxX-minX)+pad*2, h:(maxY-minY)+pad*2 };
   }
 
   function redrawAll(){
@@ -3441,6 +3470,31 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   function endStroke(){
     // 溜まっている分を最後に一度反映してから終了する
     if(pendingMoves.length) flushPendingMoves();
+    // 二次ベジェは直近2点の「中点」までしか届かないため、最後にもう一区間
+    // （中点→実際の最終点）を描き足して線の先端が短く途切れないようにする。
+    if(curStroke && curStroke.points.length >= 2){
+      const pts = curStroke.points;
+      const prev = pts[pts.length-2], last = pts[pts.length-1];
+      const midX = (prev.x+last.x)/2, midY = (prev.y+last.y)/2;
+      layersForTool(curStroke.tool).forEach(lc=>{
+        lc.save();
+        lc.globalCompositeOperation = (curStroke.tool === 'eraser') ? 'destination-out' : 'source-over';
+        lc.globalAlpha = 1;
+        lc.strokeStyle = curStroke.color;
+        lc.lineWidth = curStroke.width;
+        lc.lineCap = 'round';
+        lc.lineJoin = 'round';
+        lc.beginPath();
+        lc.moveTo(midX, midY);
+        lc.lineTo(last.x, last.y);
+        lc.stroke();
+        lc.restore();
+      });
+      const pad = curStroke.width/2 + 3;
+      const minX = Math.min(midX,last.x)-pad, maxX = Math.max(midX,last.x)+pad;
+      const minY = Math.min(midY,last.y)-pad, maxY = Math.max(midY,last.y)+pad;
+      compositeRegion(minX, minY, maxX-minX, maxY-minY);
+    }
     curStroke = null;
     cachedRect = null;
   }

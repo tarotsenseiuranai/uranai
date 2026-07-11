@@ -229,6 +229,29 @@ footer.pg{text-align:center;color:var(--ink-soft);font-size:11px;margin-top:36px
   cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;
 }
 .dt-color.active{border-color:var(--ink);box-shadow:0 0 0 2px #fff inset;}
+.dt-width-row{padding:2px 2px 0;gap:8px;}
+.dt-width-dot{
+  flex:none;width:14px;height:14px;border-radius:50%;
+  background:var(--ink);transition:width .1s,height .1s;
+}
+.dt-width-row input[type="range"]{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:4px;border-radius:2px;background:var(--line);
+  outline:none;min-height:0;padding:0;margin:0;
+}
+.dt-width-row input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--panel);border:2px solid var(--gold);cursor:pointer;
+}
+.dt-width-row input[type="range"]::-moz-range-thumb{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--panel);border:2px solid var(--gold);cursor:pointer;
+}
+.dt-width-val{
+  flex:none;min-width:24px;text-align:right;
+  font-size:11px;color:var(--ink-soft);font-weight:700;
+}
 
 /* iOS/iPad対応 */
 input,select,button{-webkit-appearance:none;appearance:none;border-radius:2px;}
@@ -585,6 +608,11 @@ td.kanshi-tap::after{
     <button class="dt-color" data-color="#2B3C4E" style="background:#2B3C4E" title="紺"></button>
     <button class="dt-color" data-color="#3F7D45" style="background:#3F7D45" title="緑"></button>
     <button class="dt-color" data-color="#E8A33D" style="background:#E8A33D" title="橙"></button>
+  </div>
+  <div class="dt-row dt-width-row">
+    <span class="dt-width-dot" id="drawWidthDot"></span>
+    <input type="range" id="drawWidthSlider" min="1" max="80" step="1" value="5">
+    <span class="dt-width-val" id="drawWidthVal">5</span>
   </div>
 </div>
 
@@ -3211,6 +3239,9 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
   const ctx = canvas.getContext('2d');
   const toolBtns = toolbar.querySelectorAll('.dt-tool');
   const colorBtns = toolbar.querySelectorAll('.dt-color');
+  const widthSlider = document.getElementById('drawWidthSlider');
+  const widthVal = document.getElementById('drawWidthVal');
+  const widthDot = document.getElementById('drawWidthDot');
 
   // マーカー（ハイライター）は重ね塗りしても濃くならないよう、
   // 鉛筆用レイヤーとマーカー用レイヤーを分けて管理し、
@@ -3241,6 +3272,23 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     marker: { width: 18 },
     eraser: { width: 28 },
   };
+  // ツールごとに直近使用した太さを覚えておく（スライダーで変更可能）
+  const toolWidths = {
+    pencil: TOOL_CFG.pencil.width,
+    marker: TOOL_CFG.marker.width,
+    eraser: TOOL_CFG.eraser.width,
+  };
+  function updateWidthUI(){
+    if(!widthSlider) return;
+    const w = toolWidths[currentTool];
+    widthSlider.value = w;
+    if(widthVal) widthVal.textContent = w;
+    if(widthDot){
+      const dotPx = Math.max(4, Math.min(28, w));
+      widthDot.style.width = dotPx+'px';
+      widthDot.style.height = dotPx+'px';
+    }
+  }
 
   function docSize(){
     return {
@@ -3432,7 +3480,7 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
     cachedRect = canvas.getBoundingClientRect();
     const cfg = TOOL_CFG[currentTool];
     curStroke = {
-      tool: currentTool, color: currentColor, width: cfg.width,
+      tool: currentTool, color: currentColor, width: toolWidths[currentTool] ?? cfg.width,
       points: [getPosFromXY(clientX, clientY)],
     };
     strokes.push(curStroke);
@@ -3549,8 +3597,22 @@ window.addEventListener('DOMContentLoaded', showSafariBanner);
       toolBtns.forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       currentTool = btn.getAttribute('data-tool');
+      updateWidthUI();
     });
   });
+  if(widthSlider){
+    widthSlider.addEventListener('input', ()=>{
+      const w = +widthSlider.value;
+      toolWidths[currentTool] = w;
+      if(widthVal) widthVal.textContent = w;
+      if(widthDot){
+        const dotPx = Math.max(4, Math.min(28, w));
+        widthDot.style.width = dotPx+'px';
+        widthDot.style.height = dotPx+'px';
+      }
+    });
+  }
+  updateWidthUI();
   colorBtns.forEach(btn=>{
     btn.addEventListener('click', ()=>{
       colorBtns.forEach(b=>b.classList.remove('active'));

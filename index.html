@@ -868,12 +868,37 @@ document.addEventListener('DOMContentLoaded', initAuth);
   </div>
 
   <div class="panel" id="sec-aisho">
-    <h2>相性占い（宿曜占星術・三九の秘法）</h2>
+    <h2>相性占い（宿曜占星術・0学占術）</h2>
     <p class="sub">お相手の生年月日を入力すると、本命宿同士の位置関係から相性を診断します。宿曜の相性は一方通行の場合があり、「あなたから見た相手」と「相手から見たあなた」で結果が異なることがあります（例：あなたから見て「安」でも、相手から見ると「壊」など）。</p>
+    <p class="sub">0学占術の「運命相性」も同様に一方通行です。あなたの支配星から見た相手の生まれ年（十二支）、相手の支配星から見たあなたの生まれ年（十二支）を、それぞれ独立に判定します。</p>
     <div class="grid">
       <div class="field"><label>相手の年（西暦）</label><input type="number" id="aiYear" value="1990" min="1900" max="2100"></div>
       <div class="field"><label>相手の月</label><input type="number" id="aiMonth" value="1" min="1" max="12"></div>
       <div class="field"><label>相手の日</label><input type="number" id="aiDay" value="1" min="1" max="31"></div>
+      <div class="field">
+        <label>あなたの支配星（0学・任意）</label>
+        <select id="zgMyStarSel">
+          <option value="auto">自動判定（五星三心タイプから）</option>
+          <option value="0">水星</option><option value="1">氷王星</option>
+          <option value="2">木星</option><option value="3">海王星</option>
+          <option value="4">月星</option><option value="5">魚王星</option>
+          <option value="6">火星</option><option value="7">冥王星</option>
+          <option value="8">金星</option><option value="9">小王星</option>
+          <option value="10">土星</option><option value="11">天王星</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>お相手の支配星（0学・任意）</label>
+        <select id="zgPartnerStarSel">
+          <option value="auto">自動判定（五星三心タイプから）</option>
+          <option value="0">水星</option><option value="1">氷王星</option>
+          <option value="2">木星</option><option value="3">海王星</option>
+          <option value="4">月星</option><option value="5">魚王星</option>
+          <option value="6">火星</option><option value="7">冥王星</option>
+          <option value="8">金星</option><option value="9">小王星</option>
+          <option value="10">土星</option><option value="11">天王星</option>
+        </select>
+      </div>
     </div>
     <div class="submitRow"><button class="primary" id="btnAisho">相性を診断する</button></div>
     <div id="aishoResult" style="margin-top:20px;"></div>
@@ -1621,7 +1646,7 @@ function buildRadarSVG(rawObj,withZkObj){
     const [x,y]=pt(i,maxVal);
     axes+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#DCD2BC" stroke-width="1"/>`;
     const [lx,ly]=pt(i,maxVal*1.22);
-    labelsSvg+=`<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="#211C16" font-family="'Hiragino Mincho ProN','Noto Serif JP',serif" style="cursor:pointer;" onclick="openKanshiPopover('gogyo','${g}','五行')">${g}</text>`;
+    labelsSvg+=`<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="#211C16" font-family="'Hiragino Mincho ProN','Noto Serif JP',serif">${g}</text>`;
   });
   const rawPoly=polyPoints(rawArr);
   const zkPoly=polyPoints(zkArr);
@@ -1656,7 +1681,7 @@ function renderGogyoChart(r){
   const rows=GOGYO.map(g=>{
     const isNikkan=(g===nikkanGogyo);
     return`<tr${isNikkan?' class="gogyo-nikkan"':''}>
-      <td class="kanshi-tap" data-kanshi-type="gogyo" data-kanshi-char="${g}" data-kanshi-label="五行" style="font-weight:700;">${g}${isNikkan?'<span style="color:var(--vermilion);font-size:11px;margin-left:4px;">（日干）</span>':''}</td>
+      <td style="font-weight:700;">${g}${isNikkan?'<span style="color:var(--vermilion);font-size:11px;margin-left:4px;">（日干）</span>':''}</td>
       <td style="color:var(--indigo);font-weight:700;">${raw[g]}</td>
       <td style="color:var(--vermilion);font-weight:700;">${withZk[g]}</td>
     </tr>`;
@@ -1671,7 +1696,7 @@ function renderGogyoChart(r){
       <tr><th></th><th style="color:var(--indigo);">五行</th><th style="color:var(--vermilion);">蔵干含む</th></tr>
       ${rows}
     </table>
-    <p class="note" style="text-align:center;">※ 黄色の行はあなたの日干（${r.day.k}）の五行です。／五行の文字（レーダー上または表の左端）をタップすると性格の解説が表示されます。</p>`;
+    <p class="note" style="text-align:center;">※ 黄色の行はあなたの日干（${r.day.k}）の五行です。</p>`;
 }
 
 /* ============================================================
@@ -1937,9 +1962,9 @@ function renderDaiunTable(){
     { label: '年干', p: r.year,  es: meishikiEnergyScores[0] },
   ];
 
-  // 命式天干ヘッダー（天干＋地支）
+  // 命式天干ヘッダー（天干名）
   const kanHeaders = meishikiPillars.map(m =>
-    `<th style="min-width:56px;">${m.p.k}${m.p.s}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
+    `<th style="min-width:52px;">${m.p.k}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
   ).join('');
 
   let rows=`<tr><th>年齢</th><th>干支</th><th>通変星</th><th>十二運</th><th>強さ<br><span style="font-weight:400;font-size:10px;">大運エネルギー</span></th><th>五行変化<br><span style="font-weight:400;font-size:10px;">宿命→大運時</span></th>${kanHeaders}<th>開花指数</th></tr>`;
@@ -2886,7 +2911,7 @@ function renderTable(){
     {label:'年干',p:r.year, es:_yrScores[0]},
   ];
   const nenunKanHeaders=meishikiPillarsYr.map(m=>
-    `<th style="min-width:50px;">${m.p.k}${m.p.s}<br><span style="font-weight:400;font-size:10px;">${m.es?.label??''}</span></th>`
+    `<th style="min-width:44px;">${m.p.k}<br><span style="font-weight:400;font-size:10px;">${m.es?.label??''}</span></th>`
   ).join('');
 
   let rows=`<tr>
@@ -3105,6 +3130,62 @@ const SANKU_DESC={
   '胎':'胎（母胎）のような、育み・依存し合う関係。',
 };
 
+/* ============================================================
+   ★ 0学占術：運命相性
+   出典：Wikipedia「0学」／「０学占い」うらないすと 記事
+   支配星は12種（六王星×陰陽）。支配星は、このツールで既に算出して
+   いる「五星三心タイプ」（金/銀×天中殺グループ）と一対一に対応する
+   （ユーザー確認済みの対応表）。
+     水星  ＝ 金の子丑天中殺　　氷王星＝ 銀の子丑天中殺
+     木星  ＝ 金の寅卯天中殺　　海王星＝ 銀の寅卯天中殺
+     月星  ＝ 金の辰巳天中殺　　魚王星＝ 銀の辰巳天中殺
+     火星  ＝ 金の午未天中殺　　冥王星＝ 銀の午未天中殺
+     金星  ＝ 金の申酉天中殺　　小王星＝ 銀の申酉天中殺
+     土星  ＝ 金の戌亥天中殺　　天王星＝ 銀の戌亥天中殺
+   五星三心タイプは、日柱の天中殺グループ（grp／gsGroup()）と
+   金銀（kg／kinGin()、生年の偶数=金・奇数=銀）で決まるため、
+   これをそのまま支配星の判定に流用する。
+   運命相性は「自分の支配星」×「相手の生まれ年（十二支）」の組み合わせ
+   で、12種の運命期名（0地点・精算・開拓・生長・決定・健康・人気・
+   浮気・背信…）のいずれかに決まる、144パターンの早見表。
+   ============================================================ */
+const ZG_STARS=["水星","氷王星","木星","海王星","月星","魚王星","火星","冥王星","金星","小王星","土星","天王星"];
+/* ZG_CATSはSHI="子丑寅卯辰巳午未申酉戌亥"の並びに対応（水星＝インデックス0の場合） */
+const ZG_CATS=["0地点","精算","開拓","生長","決定","健康","人気","浮気","再開","経済","充実","背信"];
+/* 五星三心タイプ（天中殺グループ＋金銀）→ 0学支配星インデックス */
+const ZG_GRP_KG_TO_STAR={
+  "子丑_金":0, "子丑_銀":1,
+  "寅卯_金":2, "寅卯_銀":3,
+  "辰巳_金":4, "辰巳_銀":5,
+  "午未_金":6, "午未_銀":7,
+  "申酉_金":8, "申酉_銀":9,
+  "戌亥_金":10,"戌亥_銀":11,
+};
+function zgStarIdxFromGogyoSanshin(grp,kg){
+  const idx=ZG_GRP_KG_TO_STAR[`${grp}_${kg}`];
+  return(idx===undefined)?null:idx;
+}
+/* 支配星インデックス（0=水星を起点）× 対象の年支 → 運命相性名 */
+function zgAisho(starIdx,shi){
+  const shiIdx=SHI.indexOf(shi);
+  if(starIdx==null||starIdx<0||shiIdx<0)return'';
+  return ZG_CATS[mmod(shiIdx-starIdx,12)];
+}
+const ZG_DESC={
+  '0地点':'人生が一度リセットされるような、予想外の展開も起こりうる神秘的な相性。うまくいけば互いの欠点を補い合いながら、共に上昇していけます。',
+  '精算':'良くも悪くも何かが変わっていく相性。これまでの努力が形を変えることもありますが、お互いの良いところを吸収し合えると良い関係になります。',
+  '開拓':'一緒にいると新しい世界に一歩踏み出せるような相性。新しいことへの挑戦にぴったりで、変化も前向きに受け入れやすい関係です。',
+  '生長':'お互いの可能性を引き出し合えるような、穏やかで信頼できる相性。人付き合いや行動範囲・視野が広がっていきます。',
+  '決定':'決断の後押しをしてくれる、公私ともに頼れる協力者となる相性。ただし、穏やかな日々を好む人には刺激が強く感じられることもあります。',
+  '健康':'喧嘩するほど仲が良い相性。トラブルも覚悟の上で付き合えば良い関係を築け、仕事仲間なら切磋琢磨し合えます。',
+  '人気':'一緒にいることでたくさんの幸運に恵まれる、実力以上の運を与え合う相性。ご縁が多いなら人生が好転している時期です。',
+  '浮気':'肩の力が抜けるリラックスできる相性。気持ちが軽やかになる反面、油断も起きやすいので、節度は大切に。',
+  '再開':'忘れていたことをよみがえらせてくれる相性。停滞していた物事に再起の意欲がわき、困った時にも力になってくれます。',
+  '経済':'金運や人生の豊かさにつながる相性。仕事でも恋愛でも良い関係で、お互いに無いものを補い合えます。',
+  '充実':'絆が強まり安定した関係を築ける相性。適切なアドバイスをくれる、良きパートナーとなる運命です。',
+  '背信':'何かと裏目に出やすく、注意が必要な相性。ただし、苦労を伴う関係は成長にもつながり、乗り越えれば強固な絆にもなり得ます。',
+};
+
 function renderAisho(){
   const resultEl=document.getElementById('aishoResult');
   if(!G.honmeiSukuVal){
@@ -3131,6 +3212,24 @@ function renderAisho(){
   };
   const descText=x=>SANKU_DESC[x.label]||'';
 
+  /* --- 0学 運命相性（支配星＝五星三心タイプから算出） --- */
+  const zgMySel=document.getElementById('zgMyStarSel').value;
+  const zgPartnerSel=document.getElementById('zgPartnerStarSel').value;
+  /* あなたの支配星：G.grp（天中殺グループ）・G.kg（金/銀）から一意に決まる */
+  const zgMyStarIdxAuto=zgStarIdxFromGogyoSanshin(G.grp,G.kg);
+  /* 相手の支配星：相手の日柱（時刻不明・東経135度基準で簡易算出）からgrp・kgを求める */
+  const partnerRforZg=calcKanshiReki({year:ay,month:am,day:ad,hour:null,minute:null,gender:'男',lon:135});
+  const partnerGrp=gsGroup(partnerRforZg.day.i);
+  const partnerKg=kinGin(ay);
+  const zgPartnerStarIdxAuto=zgStarIdxFromGogyoSanshin(partnerGrp,partnerKg);
+
+  const zgMyStarIdx=(zgMySel==='auto')?zgMyStarIdxAuto:+zgMySel;
+  const zgPartnerStarIdx=(zgPartnerSel==='auto')?zgPartnerStarIdxAuto:+zgPartnerSel;
+  const zgMyShi=yearShi(G.year);
+  const zgPartnerShi=yearShi(ay);
+  const zgFromMe=zgAisho(zgMyStarIdx,zgPartnerShi);        // あなたの支配星 × 相手の年支
+  const zgFromPartner=zgAisho(zgPartnerStarIdx,zgMyShi);   // 相手の支配星 × あなたの年支
+
   resultEl.innerHTML=`
     <div class="statRow">
       <div class="statCard"><div class="lbl">あなたの本命宿</div><div class="val">${mySuku}</div></div>
@@ -3149,6 +3248,23 @@ function renderAisho(){
       </div>
     </div>
     <p class="note" style="margin-top:14px;">※ 宿曜占星術「三九の秘法」による判定です。本命宿同士の位置関係（27宿中の距離）により、見る方向によって結果が異なる場合があります（一方通行の関係）。${fromMe.label!==fromPartner.label?`今回は、あなたから見ると「${fromMe.label}」、相手から見ると「${fromPartner.label}」という non-symmetric な関係です。`:'今回は、双方から見て同じ関係性です。'}</p>
+
+    <div class="kp-karma-divider" style="border-top:1px dashed var(--line);margin:20px 0 14px;"></div>
+    <h3 style="font-family:'Hiragino Mincho ProN','Noto Serif JP',serif;font-size:15px;margin:0 0 10px;">0学占術・運命相性</h3>
+    <div class="statRow">
+      <div class="statCard">
+        <div class="lbl">あなた（${ZG_STARS[zgMyStarIdx]}） → 相手（${zgPartnerShi}年）</div>
+        <div class="val" style="color:var(--vermilion);">${zgFromMe}の相性</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin:6px 0 0;">${ZG_DESC[zgFromMe]||''}</p>
+      </div>
+      <div class="statCard">
+        <div class="lbl">相手（${ZG_STARS[zgPartnerStarIdx]}） → あなた（${zgMyShi}年）</div>
+        <div class="val" style="color:var(--indigo);">${zgFromPartner}の相性</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin:6px 0 0;">${ZG_DESC[zgFromPartner]||''}</p>
+      </div>
+    </div>
+    <p class="note" style="margin-top:10px;">※ 0学占術の「運命相性」は、自分の支配星から見た相手の生まれ年（十二支）、相手の支配星から見た自分の生まれ年（十二支）で、それぞれ独立に判定するため一方通行になることがあります。${zgFromMe!==zgFromPartner?`今回は、あなたから見ると「${zgFromMe}」、相手から見ると「${zgFromPartner}」という異なる相性です。`:'今回は、双方から見て同じ相性です。'}<br>
+    支配星は既定で、このツールが算出する五星三心タイプ（金/銀×天中殺グループ）から一意に判定しています（例：金の子丑天中殺＝水星、銀の子丑天中殺＝氷王星…）。異なる支配星が分かっている場合は、上部の「支配星（0学・任意）」欄で手動指定してください。</p>
   `;
 }
 
@@ -3975,7 +4091,7 @@ function renderGetsuunTable() {
 
   // ヘッダー
   const geKanHeaders = meishikiPillarsGe.map(m =>
-    `<th style="min-width:56px;">${m.p.k}${m.p.s}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
+    `<th style="min-width:52px;">${m.p.k}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
   ).join('');
 
   // 月番号リスト
@@ -4072,18 +4188,6 @@ function renderGetsuunTable() {
    ボトムシート（PCでは中央モーダル）でその場に表示する。
    他の場所（背景）をタップすると閉じる。
    ============================================================ */
-const GOGYO_ONELINE = {"木":"マジメな人","火":"明るく楽天的な人","土":"現実的で活動力のある人","金":"クールな人","水":"人間好きな人"};
-const GOGYO_DETAIL = {"木":"純粋で責任感が強く、一途で真っ直ぐな性格。大きな目標を決めて一生懸命頑張る。楽しく生きるよりも目標を達成していくことに生きがいを感じる。目標を叶えるために自分ルールを作り愚直に実行する。それを誰かに邪魔されると激しく怒ることがある。柔軟性には欠ける。時には狂信的になることもある。","火":"考え方はポジティブで人生を楽しむことに時間を費やす。自我も強いため、時間やルールに縛られることを嫌う。自由気ままに楽しむことを生きがいに感じる。自由人。楽しいことばかりを追いかけるタイプ。時には金銭的な面で周りに迷惑をかけることもある。","土":"見栄えの良いものや美しいものへの関心が強い。物事を組織する才能がある。自分の思想などに凝り固まりやすい性質を持っている。一度思い込むと揺るがない頑固さがある。スピード感には欠けるが、粘り強く最後までやり遂げる力を持っている。人に対して本音を言わなかったり物事を隠す傾向がある。","金":"あまり感情表現をしないタイプ。いつも冷静に見える。金が強すぎると冷たい印象を受けることもある。かなり慎重で保守的なタイプ。親しい人以外にはなかなか心を開かない。個人主義で他人に興味がない。集団で行動することが苦手。自分なりの哲学・美学を持っている。かなり繊細で美意識が強い。","水":"対人関係が得意。その場の空気を読んで相手に合わせる。周りに細かい気配りができる。他人から好かれやすい。普段はのんびりした性格で一生懸命になることはない。ルールを無視しがち。直感力が非常に鋭い。現実を見る目がとてもシビア。一度チャンスを捉えると徹底して追及していく力強さがある。"};
-const GOGYO_MERIT = {"木":"生真面目、仕事熱心、責任感が強い、正義感が強い、努力家","火":"明るい、陽気、他人から好かれる、ポジティブ","土":"ものごとを組織する才能、活動的、粘り強さ、ビジネスセンス","金":"冷静、ものごとを客観的に判断できる、美意識","水":"柔軟性がある、応用力に優れている、直感力がある"};
-const GOGYO_DEMERIT = {"木":"融通が利かない、ものごとを強引に進める、狂信的になる","火":"自己本位、マイペース、周りを振り回す、勝気な性格","土":"ものごとを隠す、重い気質","金":"個人主義、冷めた雰囲気、他人に興味がない","水":"怠惰に流されやすい、応用が過ぎてルールを無視する"};
-const GOGYO_JOB = {"木":"伝統的な分野で、かつ意思の強さを活かせる仕事が良い。","火":"動きのある仕事が良い。活動的なので静的な仕事には不向き。","土":"現実的な利益計算に優れる。実利のある仕事に向く。","金":"個性的なセンスを生かせる仕事。集団的な仕事は不向き。","水":"対人的な人と関わる仕事が良い。粘り強さには欠ける。"};
-const GOGYO_GRAPH_ZENTAI = {"自我":"自意識が強い。個性的な生き方を追求していく。他人と自分の違いを意識する。自分のポリシーや考え方を持っている。平凡な生き方を嫌う。ゴーイングマイウェイを貫く。","感情":"のんびり大らかな人。頑張ることが苦手。素直に自分の感情を表現する。欲望には流されやすい。楽しいものや美味しいものに弱い。人間関係を大切にする。","身体":"活動的な人。現実的な生活に関心が強い。現実主義者。目に見える偏財を大切にする。人に対してはシビアな考え方をする。自分の利害に関わることになると大きく態度を変える。","理性":"マジメ人間。ラクな人生よりも困難な人生をあえて選択する。厳格すぎて近寄りがたい印象を与える人もいる。精神主義で理想主義。崇高な目標に向かって突き進む。","知性":"慎重で冷静。穏やかに生きる道を選択する。厳しい人生を避けようとする。周りからは温和で大人しい人だと思われる。感情表現が薄い。人間関係も希薄になりがち。"};
-const GOGYO_GRAPH_SEIKAKU = {"自我":"少しわがまま。協調性が弱い。基本的にはマイペース。自由主義。時間やお金、人間関係に縛られることを嫌う。自分の個性を開発することが生きがいになる。","感情":"喜怒哀楽が激しい。普段は大らかで包容力がある。時には神経質になることも。人間関係は親密になりやすい。他人に対してかなり気遣いをする。","身体":"気さくであっさりとした性格。モノやお金が関わると急に気難しい性格になる。形あるものをめぐって他人と衝突したり軽率な行動からトラブルに発展することがある。","理性":"自己抑制的で非常に我慢強い性格。とても几帳面。自分だけでなく他人にも厳しさを強制することがある。目標に向かって努力を積み重ねることが生きがい。","知性":"引っ込み思案で大人しい性格。感情が弱い場合はより一層自己表現が苦手になる。かなり保守的な性格。何事も慎重に行動するタイプ。"};
-const GOGYO_GRAPH_SHIGOTO = {"自我":"自営系の仕事に向く。個性的な性格なので集団の中で働くのは合わない。個性的な能力を磨くことが成功への鍵。自我をプラスに転換できれば「カリスマ」になれる。","感情":"外向的なタイプなら人と接する仕事が合う。内向的なタイプなら細かい技術が要求される仕事が合う。自分を表現する能力を活かすことが大切。","身体":"現実的な勘が鋭く、ビジネス全般に適性がある。お金やモノを扱うのが得意。経営にも向いている。","理性":"堅実な仕事や権威的な仕事に向く。集団的な協調性が求められるような仕事も合う。個性的な才能が必要とされる仕事やクリエイティブな能力が求められる仕事は向かない。","知性":"専門知識を扱う仕事に向く。地道で安定性のある仕事や、持続的な仕事が合う。変化の激しい仕事、行動力が求められるような仕事は合わない。"};
-const GOGYO_KARMA_MERIT = {"木":"集団への適応能力、調和的、マジメ、自律的、裏表がない、純粋","火":"明るい、活動的、外向的、仲間を増やす能力に優れる、頭の回転が早い","土":"タフ、現実的、経済感覚に優れる","金":"冷静、大人っぽい雰囲気がある","水":"情緒的、情愛的な本能が強い"};
-const GOGYO_KARMA_DEMERIT = {"木":"思い込みが強い、自分の意見を曲げない、自説を他人に押し付ける","火":"内面的な感受性が乏しい、競争意識が強い、人生の華やかな面ばかりを見がち","土":"実利面に関心が向かいすぎる、損得勘定から人間関係を壊すことがある","金":"クールすぎる、深い人間関係を避ける、自分の偏財に閉じこもる","水":"人間関係に振り回されやすい、過干渉になりがち"};
-const GOGYO_KARMA_POINT = {"木":"他人の考えを尊重して受け入れること。\n\n色々な人がいて、色々な考えがあることを学ぶことが大切。自分の考えを押し付けることで人間関係を壊すこともあるので、無理強いしないように心がけることが大切です。金が多い人が近くにいると、考え方の違いから揉めることもありますが、自分の頑固さを矯正するためには有効です。","火":"人間の暗い面にも目を向けること。\n\n人生は楽しむことだけが目的ではなく、自分を鍛えて試練を乗り越え、魂を成長させるためにあることを学びましょう。また、競争意識が強すぎると、他人との争いに明け暮れて自分を見失うこともあります。礼儀を重んじることが大切です。","土":"大切な人間関係を壊さないように気をつけること。\n\n土が多い人は現実的で経済感覚に優れているので、物質社会を生き抜く能力に長けています。ですが、実利的な才能が行きすぎるあまり、家族や友人、仕事において、人間関係よりも自分の利益を優先することがあります。このタイプは、他人に対する気配りや信頼の気持ちを持つことが何より大切です。","金":"他人と積極的に関わっていくこと。\n\n金が多い人は冷静沈着にものごとを見れる一方、人と深く関わるのを避ける傾向にあります。面倒なことは全て避けて通ろうとするので、度が過ぎると孤立することになります。他人と積極的に関わっていき、多くのことを学び、周りの人との絆を築くことが大切です。","水":"知識を習得するなど、自分の時間を作ること。\n\n水が多い人は人間関係に強く執着する人です。情愛的な本能が強いのは良いことですが、人と密に関わりすぎたり、過干渉となって相手の行動や生き方を束縛することもあります。水＝知恵の象徴なので、読書や勉強の習慣を作り、人とばかり関わるのではなく自分一人の時間を作ることが大切です。"};
-
 const KAN_DESC = {"甲": "意思が強い。\n\n一度やると決めたことは途中で投げ出さない。大きな目標に向かってコツコツ努力をする。正義感や責任感が強い。リーダーシップがある。理想主義。明るくさっぱりした性格。古風な雰囲気がある。成長意欲がすごい。直線的な性格。かなり頑固な人。狂信的な性格も持ち合わせている。", "乙": "生真面目で几帳面。\n\n頑固な一面がある。コツコツ努力を続けられる。責任感が強い。与えられた仕事をキッチリこなすマジメな人。権力的なものに従属したい気持ちが強い。長い物には巻かれろ的な考え方をする。マジメさが裏目に出て意固地になって周りと衝突することがある。", "丙": "自意識が強い。\n\n自分らしく生きたいという気持ちが非常に強い。他人と同じ平凡な人生を嫌う。自分の考え方や価値観を大切にする。自分中心にものごとを考える人。競争意識が強い。勝ち負けにこだわる。華やかさとカリスマ性を兼ね備えている。美男美女が多い。わがままになって自我が暴走しやすい。", "丁": "目立つことが好き。\n\n地味で堅実な生き方を嫌う。周りから注目や関心を集めることに意識が向かう。構ってちゃんタイプ。負けず嫌い。常に自分が一番になりたいという意識が強い。考え方は前向きかつ楽天的。楽しいことが大好き。ルーズな面がある。気分でコロコロ行動を変えたり約束を平気で破ったりすることがある。", "戊": "活動的。\n\n性格はあっさりしていて現実主義者。目に見える偏財を大切にする。人の感情やスピリチュアル的な偏財を蔑ろにする傾向がある。ものごとを組織する才能がある。組織のリーダーになることが多い。モノやお金に対する執着心がかなり強い。深く考える前に行動することが多い。失敗することも多い。", "己": "堅実。\n\n現実感覚がかなり強い。粘り強い気質を持っている。考え方は保守的。大きな冒険はしない。緻密さがあるので細かい作業が得意。秘密性・神秘性がある。あまり人前で本音を言わない傾向がある。周りからは「何を考えてるか分からない」と思われることが多い。", "庚": "クールで個人主義。\n\nクールで冷静沈着。知的な雰囲気。あまり感情を表現しない。無表情になりやすい。ものごとを深く考え合理的に判断する。厳しい環境にも耐えられる強さがある。人と群れるよりも1人で過ごすことが多い。感受性が強い。仕事や交際面で神経が疲れやすく心が不安定になることがある。", "辛": "大人しくてデリケート。\n\n内向的で思慮深い。自己表現が苦手。人間関係もかなり慎重。かなり繊細で傷つきやすい。静かな生活環境を好む。美意識に優れている。温和で辛抱強い。優しい性格を持ち合わせている。HSP気質な人が多い。", "壬": "頭が良い。\n\n知恵の象徴で東大生に多い。悪知恵も人一倍働くためルールを破ることがある。性格はのんびりしていて朗らか。前向きにものごとを考える。包容力がある。周りから頼りにされることが多い。人間関係に関心が強い。共感力も高い。欲張りな一面がある。食べたり飲んだりと楽しみに溺れやすい。", "癸": "直感力が鋭い。\n\n人を見る目がある。争いごとを嫌う平和主義者。他人に奉仕することを考えて行動する。人間関係に関心が強い。臆病で精神が過敏な一面を持っている。周囲への警戒心が強い。なかなか本心を許すことがない。かなり気を使う人。基本的には周りに合わせて行動する。自分より周りを優先するので疲れやすい。"};
 const SHI_DESC = {"子": "堅実、頑固、ストイック、大胆な行動力、冷静沈着、人に興味がない、誠実、財テクに詳しい、安定志向、人に興味がないため接客系は続かない", "丑": "コミュニケーションを取るのが好き、人に合わせるのが苦手、好奇心旺盛、落ち込みやすい、責任感が強い、新たな挑戦が好き、褒められると伸びる、企画力・発想力がある", "寅": "繊細、優しい、人の感情に寄り添える、ロマンチスト、流されやすい、感受性、観察力がある、対人能力が高い、決めるのは苦手、芸術性がある", "卯": "正義感、直感力がある、思い立ったら即行動、面倒見が良い、リーダーに指名されがち、努力家、仕事を抱えがち、面倒見が良い、単純作業が苦手、プライドが高い", "辰": "行動派、ポジティブ、失敗を恐れない、決断が早い、なんとかなる精神、輪の中心にいたい、情に厚い、約束を守る", "巳": "好奇心旺盛、二面性がある、深く考えない、コミュ力高い、飽きっぽい、頭の回転が早い、マルチタスクが得意、集中力が持続しない、接客に向く、話す書くが得意", "午": "優しい、気配り上手、穏やか、協調性がある、平和主義、真面目、責任感が強い、癒し能力がある、世話好き、集団行動が得意", "未": "意見をハッキリ言う、神経質、凝り性、負けず嫌い、せっかち、猪突猛進、目標を達成する、リーダー適性、周囲と衝突しやすい、勝負事に強い", "申": "真面目、几帳面、知性に優れる、勉強好き、気遣いができる、物事を客観的に見れる、管理能力に長ける、時間やルールをきっちり守る、基準が厳しい", "酉": "社交的、公正・中立に判断できる、論理的、繊細、勉強が得意、知的、冷静、調整が得意、聞き上手、臨機応変、要領が良い、ストレスを溜めやすい", "戌": "芯が強い、一点集中が得意、忍耐力がある、秘密主義、人に合わせるのが苦手、気持ちの切り替えが苦手、真面目、慎重、縁の下の力持ち", "亥": "素直、謙虚、考えるよりも行動、おおざっぱ、事務作業が苦手、忙しさが苦にならない、切り替えが早い、プレーヤータイプ、俯瞰力がある"};
 const EFFECT_ALIAS = {"正印":"印綬"};
@@ -4117,7 +4221,7 @@ function openKanshiPopover(type, char, label, extra){
   const backdrop = document.getElementById('kanshiPopBackdrop');
   if(!titleEl || !bodyEl || !backdrop) return;
 
-  let text, kindLabel, karmaBlocks=[];
+  let text, kindLabel, karmaBlock=null;
   if(type === 'kan'){
     text = KAN_DESC[char];
     kindLabel = (label ? label.replace('柱','') : '') + '天干';
@@ -4129,36 +4233,19 @@ function openKanshiPopover(type, char, label, extra){
     kindLabel = (label ? label.replace('柱','') : '') + '通変星';
     const km = KARMA_EFFECT_BY_PILLAR[label];
     if(km && km.data[char]){
-      karmaBlocks.push({ title: '★ ' + km.title + '（前世・カルマ）', text: km.data[char] });
+      karmaBlock = { title: km.title, text: km.data[char] };
     } else if(km && EFFECT_ALIAS[char] && km.data[EFFECT_ALIAS[char]]){
-      karmaBlocks.push({ title: '★ ' + km.title + '（前世・カルマ）', text: km.data[EFFECT_ALIAS[char]] });
+      karmaBlock = { title: km.title, text: km.data[EFFECT_ALIAS[char]] };
     }
   } else if(type === 'image'){
     text = IMAGE_DESC[char] || IMAGE_DESC[IMAGE_ALIAS[char]];
     kindLabel = (label ? label.replace('柱','') : '') + '十二運';
     const km = KARMA_IMAGE_BY_PILLAR[label];
     if(km && km.data[char]){
-      karmaBlocks.push({ title: '★ ' + km.title + '（前世・カルマ）', text: km.data[char] });
+      karmaBlock = { title: km.title, text: km.data[char] };
     } else if(km && IMAGE_ALIAS[char] && km.data[IMAGE_ALIAS[char]]){
-      karmaBlocks.push({ title: '★ ' + km.title + '（前世・カルマ）', text: km.data[IMAGE_ALIAS[char]] });
+      karmaBlock = { title: km.title, text: km.data[IMAGE_ALIAS[char]] };
     }
-  } else if(type === 'gogyo'){
-    kindLabel = '五行';
-    const oneline = GOGYO_ONELINE[char] || '';
-    const detail = GOGYO_DETAIL[char] || '';
-    text = oneline ? `${oneline}\n\n${detail}` : detail;
-    const category = (GOGYO_GRAPH_LABELS['性格'] || {})[char]; // 木→理性 等
-    karmaBlocks.push({ title: '長所', text: GOGYO_MERIT[char] || '' });
-    karmaBlocks.push({ title: '短所', text: GOGYO_DEMERIT[char] || '' });
-    karmaBlocks.push({ title: '向いてる仕事', text: GOGYO_JOB[char] || '' });
-    if(category){
-      karmaBlocks.push({ title: `性格グラフ視点（${category}）・全体`, text: GOGYO_GRAPH_ZENTAI[category] || '' });
-      karmaBlocks.push({ title: `性格グラフ視点（${category}）・性格`, text: GOGYO_GRAPH_SEIKAKU[category] || '' });
-      karmaBlocks.push({ title: `性格グラフ視点（${category}）・仕事`, text: GOGYO_GRAPH_SHIGOTO[category] || '' });
-    }
-    karmaBlocks.push({ title: '★ カルマ：長所（前世・カルマ）', text: GOGYO_KARMA_MERIT[char] || '' });
-    karmaBlocks.push({ title: 'カルマ：短所', text: GOGYO_KARMA_DEMERIT[char] || '' });
-    karmaBlocks.push({ title: 'カルマ解消のポイント', text: GOGYO_KARMA_POINT[char] || '' });
   }
   if(!text){ text = '該当する解説データが見つかりませんでした。'; }
 
@@ -4170,22 +4257,21 @@ function openKanshiPopover(type, char, label, extra){
   mainP.textContent = text;
   bodyEl.appendChild(mainP);
 
-  karmaBlocks.forEach(karmaBlock=>{
-    if(!karmaBlock || !karmaBlock.text) return;
+  if(karmaBlock){
     const divider = document.createElement('div');
     divider.className = 'kp-karma-divider';
     bodyEl.appendChild(divider);
 
     const karmaTitle = document.createElement('div');
     karmaTitle.className = 'kp-karma-title';
-    karmaTitle.textContent = karmaBlock.title;
+    karmaTitle.textContent = '★ ' + karmaBlock.title + '（前世・カルマ）';
     bodyEl.appendChild(karmaTitle);
 
     const karmaP = document.createElement('div');
     karmaP.className = 'kp-section kp-karma-text';
     karmaP.textContent = karmaBlock.text;
     bodyEl.appendChild(karmaP);
-  });
+  }
 
   backdrop.classList.add('open');
 }

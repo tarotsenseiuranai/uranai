@@ -1962,9 +1962,9 @@ function renderDaiunTable(){
     { label: '年干', p: r.year,  es: meishikiEnergyScores[0] },
   ];
 
-  // 命式天干ヘッダー（天干名）
+  // 命式天干ヘッダー（天干＋地支）
   const kanHeaders = meishikiPillars.map(m =>
-    `<th style="min-width:52px;">${m.p.k}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
+    `<th style="min-width:56px;">${m.p.k}${m.p.s}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
   ).join('');
 
   let rows=`<tr><th>年齢</th><th>干支</th><th>通変星</th><th>十二運</th><th>強さ<br><span style="font-weight:400;font-size:10px;">大運エネルギー</span></th><th>五行変化<br><span style="font-weight:400;font-size:10px;">宿命→大運時</span></th>${kanHeaders}<th>開花指数</th></tr>`;
@@ -2911,7 +2911,7 @@ function renderTable(){
     {label:'年干',p:r.year, es:_yrScores[0]},
   ];
   const nenunKanHeaders=meishikiPillarsYr.map(m=>
-    `<th style="min-width:44px;">${m.p.k}<br><span style="font-weight:400;font-size:10px;">${m.es?.label??''}</span></th>`
+    `<th style="min-width:56px;">${m.p.k}${m.p.s}<br><span style="font-weight:400;font-size:10px;">${m.es?.label??''}</span></th>`
   ).join('');
 
   let rows=`<tr>
@@ -4091,7 +4091,7 @@ function renderGetsuunTable() {
 
   // ヘッダー
   const geKanHeaders = meishikiPillarsGe.map(m =>
-    `<th style="min-width:52px;">${m.p.k}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
+    `<th style="min-width:56px;">${m.p.k}${m.p.s}<br><span style="font-weight:400;font-size:10px;">${m.es?.label ?? ''}</span></th>`
   ).join('');
 
   // 月番号リスト

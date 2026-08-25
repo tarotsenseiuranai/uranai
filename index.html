@@ -1296,13 +1296,24 @@ function tenGod(dk,tk){
   if(shengG(t.g)===me.g)return s?"偏印":"正印";
   return "?";
 }
-const CS_BY_KAN={"甲":"亥","乙":"午","丙":"寅","丁":"酉","戊":"寅","己":"酉","庚":"巳","辛":"子","壬":"申","癸":"卯"};
-const J12=["長生","沐浴","冠帯","建禄","帝旺","衰","病","死","墓","絶","胎","養"];
+/* ============================================================
+   十二運 早見表（テーブル直引き方式）
+   行＝地支・列＝天干の早見表をそのままオブジェクト化したもの。
+   ============================================================ */
+const JUNIUN_TABLE = {
+  "甲":{"子":"沐浴","丑":"冠帯","寅":"建禄","卯":"帝旺","辰":"衰","巳":"病","午":"死","未":"墓","申":"絶","酉":"胎","戌":"養","亥":"長生"},
+  "乙":{"子":"沐浴","丑":"冠帯","寅":"帝旺","卯":"建禄","辰":"衰","巳":"病","午":"死","未":"墓","申":"絶","酉":"胎","戌":"養","亥":"長生"},
+  "丙":{"子":"胎","丑":"養","寅":"長生","卯":"沐浴","辰":"冠帯","巳":"建禄","午":"帝旺","未":"衰","申":"病","酉":"死","戌":"墓","亥":"絶"},
+  "丁":{"子":"胎","丑":"養","寅":"長生","卯":"沐浴","辰":"冠帯","巳":"帝旺","午":"建禄","未":"衰","申":"病","酉":"死","戌":"墓","亥":"絶"},
+  "戊":{"子":"胎","丑":"養","寅":"長生","卯":"沐浴","辰":"冠帯","巳":"建禄","午":"帝旺","未":"衰","申":"病","酉":"死","戌":"墓","亥":"絶"},
+  "己":{"子":"胎","丑":"養","寅":"長生","卯":"沐浴","辰":"冠帯","巳":"帝旺","午":"建禄","未":"衰","申":"病","酉":"死","戌":"墓","亥":"絶"},
+  "庚":{"子":"死","丑":"墓","寅":"絶","卯":"胎","辰":"養","巳":"長生","午":"沐浴","未":"冠帯","申":"建禄","酉":"帝旺","戌":"衰","亥":"病"},
+  "辛":{"子":"死","丑":"墓","寅":"絶","卯":"胎","辰":"養","巳":"長生","午":"沐浴","未":"冠帯","申":"帝旺","酉":"建禄","戌":"衰","亥":"病"},
+  "壬":{"子":"帝旺","丑":"衰","寅":"病","卯":"死","辰":"墓","巳":"絶","午":"胎","未":"養","申":"長生","酉":"沐浴","戌":"冠帯","亥":"建禄"},
+  "癸":{"子":"建禄","丑":"衰","寅":"病","卯":"死","辰":"墓","巳":"絶","午":"胎","未":"養","申":"長生","酉":"沐浴","戌":"冠帯","亥":"帝旺"},
+};
 function juniUn(dk,sh){
-  const si=KAN_INFO[dk].y==="陽";
-  const st=SHI.indexOf(CS_BY_KAN[dk]),ti=SHI.indexOf(sh);
-  const steps=si?mmod(ti-st,12):mmod(st-ti,12);
-  return J12[steps];
+  return (JUNIUN_TABLE[dk] && JUNIUN_TABLE[dk][sh]) || "";
 }
 const SHIGO={"子":"丑","丑":"子","寅":"亥","亥":"寅","卯":"戌","戌":"卯","辰":"酉","酉":"辰","巳":"申","申":"巳","午":"未","未":"午"};
 
@@ -1925,8 +1936,23 @@ const TSUHENSEI_COMBO_TARGET = {
 };
 
 /**
+ * 命式の柱（年柱・月柱・日柱・時柱）から、組み合わせ判定に使う「蔵干の司令」（＝命式表で
+ * 赤字表示される蔵干）の天干を返す。
+ * 命式テーブル（renderMeishiki）の赤字選択と同じロジック（zokanByDay）を再利用しており、
+ * 画面に表示されている赤字の司令通変星と、組み合わせ判定で使用する通変星が一致するようにする。
+ * @param {object} r      - calcKanshiReki の結果（daysIntoMonth を使用）
+ * @param {object} pillar - 命式の柱オブジェクト（{k, s} を持つ。例: r.year, r.month, r.day, r.hour）
+ * @returns {string|null} 司令の蔵干（天干1文字）。柱が存在しない場合は null
+ */
+function pillarCommandKan(r, pillar) {
+  if (!r || !pillar || pillar.k === '-' || !pillar.s) return null;
+  return zokanByDay(pillar.s, r.daysIntoMonth);
+}
+
+/**
  * 宿命天干と対象天干（大運/年運/月運）の通変星カテゴリの組み合わせ評価を返す
- * @param {string} meishikiKan  - 宿命の天干（年干・月干・日干・時干）
+ * @param {string} meishikiKan  - 宿命側の天干。ここには命式の天干そのもの（Effect算出用の天干）
+ *                                ではなく、pillarCommandKan() で求めた「蔵干の司令（赤字）」を渡すこと。
  * @param {string} targetKan    - 大運/年運/月運の天干
  * @param {boolean} isDayPillar - 日干かどうか（特別ルール適用）
  * @param {string} dayKan       - 日干（通変星算出の基準）
@@ -2012,7 +2038,7 @@ function renderDaiunTable(){
       const ang = aspect(shi, m.p.s);
       const angCls = aspectColorCls(shi, m.p.s);
       const isDayPillar = (m.label === '日干');
-      const combo = tsuhenseiCombo(m.p.k, kan, isDayPillar, dk);
+      const combo = tsuhenseiCombo(pillarCommandKan(r, m.p), kan, isDayPillar, dk);
       const comboHtml = combo.isMatch
         ? `<span style="color:#1565C0;font-weight:700;font-size:12px;">○</span>`
         : `<span style="color:#999;font-size:12px;">-</span>`;
@@ -3002,7 +3028,7 @@ function renderTable(){
       const ang = aspect(ks[1], m.p.s);
       const angCls = aspectColorCls(ks[1], m.p.s);
       const isDayPillar = (m.label === '日干');
-      const combo = tsuhenseiCombo(m.p.k, yrKan, isDayPillar, r.day.k);
+      const combo = tsuhenseiCombo(pillarCommandKan(r, m.p), yrKan, isDayPillar, r.day.k);
       const comboHtml = combo.isMatch
         ? `<span style="color:#1565C0;font-weight:700;font-size:12px;">○</span>`
         : `<span style="color:#999;font-size:12px;">-</span>`;
@@ -4151,7 +4177,7 @@ function renderGetsuunTable() {
       const ang = aspect(mp.s, m.p.s);
       const angCls = aspectColorCls(mp.s, m.p.s);
       const isDayPillar = (m.label === '日干');
-      const combo = tsuhenseiCombo(m.p.k, mp.k, isDayPillar, r.day.k);
+      const combo = tsuhenseiCombo(pillarCommandKan(r, m.p), mp.k, isDayPillar, r.day.k);
       const comboHtml = combo.isMatch
         ? `<span style="color:#1565C0;font-weight:700;font-size:12px;">○</span>`
         : `<span style="color:#999;font-size:12px;">-</span>`;

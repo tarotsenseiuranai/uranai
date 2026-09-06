@@ -379,9 +379,19 @@ table.ytbl tr:first-child th,table.meishiki tr:first-child th{
 .kaika-天気-雨{color:#2980B9;font-weight:700;}
 .kaika-天気-豪雨{color:#1A5276;font-weight:700;}
 
+/* 早見パネル共通ラッパー（右下固定・複数パネルを縦に並べる） */
+#quick-ref-wrap{
+  position:fixed;bottom:20px;right:16px;z-index:500;
+  display:flex;flex-direction:column;gap:10px;align-items:flex-end;
+  max-height:calc(100vh - 40px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  pointer-events:none;
+}
+#quick-ref-wrap > details{pointer-events:auto;flex:none;}
+
 /* 開花指数凡例パネル */
 #kaika-legend-panel{
-  position:fixed;bottom:20px;right:16px;z-index:500;
   background:var(--panel);border:1px solid var(--line);
   border-radius:4px;padding:0;width:200px;
   box-shadow:0 4px 16px rgba(0,0,0,.12);
@@ -415,6 +425,70 @@ table.ytbl tr:first-child th,table.meishiki tr:first-child th{
   width:14px;height:14px;border-radius:2px;flex-shrink:0;
 }
 .kaika-legend-name{font-weight:700;flex:1;}
+
+/* 十二支の関係／十干×十二運 早見パネル */
+#quick-ref-wrap > details.quickref-panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:4px;padding:0;width:200px;
+  box-shadow:0 4px 16px rgba(0,0,0,.12);
+  overflow:hidden;
+  transition:box-shadow 0.2s;
+}
+.quickref-panel summary{
+  cursor:pointer;
+  padding:10px 14px;
+  font-size:13px;font-weight:700;
+  color:var(--ink);
+  user-select:none;
+  display:flex;align-items:center;gap:6px;
+  list-style:none;
+}
+.quickref-panel summary::-webkit-details-marker{display:none;}
+.quickref-panel summary::before{
+  content:"◆";font-size:11px;color:var(--gold);
+}
+/* flexの子要素として高さを伸縮させるのではなく、この要素自体に直接
+   高さの上限とスクロールを持たせる（Safari等でdetails×flexの高さ計算が
+   崩れることがあるため、確実に動くこの方式にしている） */
+.quickref-body{
+  padding:2px 12px 12px;
+  max-height:min(56vh,380px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.quickref-grid{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:6px;
+}
+.quickref-grid-10{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
+}
+.quickref-cell-btn{
+  border:1px solid var(--line);background:#fff;color:var(--ink);
+  border-radius:2px;padding:7px 0;font-size:14px;font-family:inherit;
+  cursor:pointer;text-align:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.quickref-cell-btn:active{background:var(--purple-pale);}
+.quickref-back-btn{
+  background:transparent;border:1px solid var(--line);color:var(--ink-soft);
+  font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;
+  margin-bottom:8px;-webkit-tap-highlight-color:transparent;
+}
+.quickref-title-row{
+  font-size:11px;color:var(--ink-soft);margin-bottom:6px;
+}
+.quickref-result-row{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px;
+}
+.quickref-result-row:last-child{border-bottom:none;}
+.quickref-rel-tag{
+  font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:2px;
+  white-space:nowrap;background:var(--bg);color:var(--ink);
+}
+.quickref-rel-tag.angle-blue{background:var(--blue-pale);color:#1E4D75;}
+.quickref-rel-tag.angle-red{background:var(--red-pale);color:#A00030;}
+.quickref-rel-none{color:#bbb;font-weight:400;}
 
 
 /* ===== パスワード認証画面 ===== */
@@ -717,7 +791,8 @@ document.addEventListener('DOMContentLoaded', initAuth);
 
 </script>
 
-<!-- 開花指数 凡例パネル（右下固定） -->
+<!-- 早見パネル群（右下固定）：開花指数凡例／十二支の関係／十干×十二運 -->
+<div id="quick-ref-wrap">
 <details id="kaika-legend-panel">
   <summary>開花指数 凡例</summary>
   <div class="kaika-legend-body">
@@ -758,6 +833,17 @@ document.addEventListener('DOMContentLoaded', initAuth);
     </p>
   </div>
 </details>
+
+<details class="quickref-panel" id="shishi-panel">
+  <summary>十二支の関係 早見</summary>
+  <div class="quickref-body" id="shishi-panel-body"></div>
+</details>
+
+<details class="quickref-panel" id="jikkan-panel">
+  <summary>十干×十二運 早見</summary>
+  <div class="quickref-body" id="jikkan-panel-body"></div>
+</details>
+</div>
 
 <div class="wrap">
 <header class="pg">
@@ -1349,25 +1435,119 @@ function zokanAll(shi,dayKan,selectedStem){
   }));
 }
 
-function aspect(da,sh){
-  if(da===sh)return"0°（同支）";
+/* ============================================================
+   地支の相剋関係（支合・支冲に加えて、害・刑をすべて判定）
+   ============================================================ */
+const HAI_PAIR={"子":"未","未":"子","丑":"午","午":"丑","寅":"巳","巳":"寅","卯":"辰","辰":"卯","申":"亥","亥":"申","酉":"戌","戌":"酉"};
+const XING_GROUP_MUEN=["寅","巳","申"];    /* 無恩の刑 */
+const XING_GROUP_JISEI=["丑","戌","未"];   /* 恃勢の刑 */
+const XING_PAIR_BUREI={"子":"卯","卯":"子"}; /* 無礼の刑 */
+const XING_SELF=["辰","午","酉","亥"];     /* 自刑（同じ地支同士で成立） */
+function xingRelation(da,sh){
+  if(XING_GROUP_MUEN.includes(da) && XING_GROUP_MUEN.includes(sh) && da!==sh) return"無恩の刑";
+  if(XING_GROUP_JISEI.includes(da) && XING_GROUP_JISEI.includes(sh) && da!==sh) return"恃勢の刑";
+  if(XING_PAIR_BUREI[da]===sh) return"無礼の刑";
+  if(da===sh && XING_SELF.includes(da)) return"自刑";
+  return null;
+}
+/* 2つの地支間に成立する「支合・支冲・害・刑」をすべて配列で返す（複数成立する組み合わせにも対応） */
+function shiRelations(da,sh){
+  const rels=[];
+  if(SHIGO[da]===sh) rels.push('支合');
   const d=mmod(SHI.indexOf(sh)-SHI.indexOf(da),12);
   const deg=Math.min(d,12-d)*30;
-  let ex="";
-  if(SHIGO[da]===sh)ex="（支合）";
-  else if(deg===180)ex="（支冲）";
-  else if(deg===120)ex="（三合系）";
+  if(deg===180) rels.push('支冲');
+  if(HAI_PAIR[da]===sh) rels.push('害');
+  const xr=xingRelation(da,sh);
+  if(xr) rels.push(`刑（${xr}）`);
+  return rels;
+}
+
+function aspect(da,sh){
+  if(da===sh)return XING_SELF.includes(da) ? "0°（同支・自刑）" : "0°（同支）";
+  const d=mmod(SHI.indexOf(sh)-SHI.indexOf(da),12);
+  const deg=Math.min(d,12-d)*30;
+  const rels=shiRelations(da,sh);
+  const ex = rels.length ? `（${rels.join('・')}）` : (deg===120 ? '（三合系）' : '');
   return deg+"°"+ex;
 }
 
-/* 角度の数値から背景色クラスを返す（60°/120°＝淡い青、90°/150°/180°＝淡い赤） */
+/* 角度・関係性から背景色クラスを返す（支冲／害／刑＝淡い赤、支合／60°・120°＝淡い青） */
 function aspectColorCls(da,sh){
-  if(da===sh)return"";
+  if(da===sh) return XING_SELF.includes(da) ? "angle-red" : "";
+  const rels=shiRelations(da,sh);
+  if(rels.includes('支冲') || rels.includes('害') || rels.some(r=>r.startsWith('刑'))) return"angle-red";
+  if(rels.includes('支合')) return"angle-blue";
   const d=mmod(SHI.indexOf(sh)-SHI.indexOf(da),12);
   const deg=Math.min(d,12-d)*30;
   if(deg===60||deg===120)return"angle-blue";
   if(deg===90||deg===150||deg===180)return"angle-red";
   return"";
+}
+
+/* ============================================================
+   神殺（命式タップ解説とは別に、命式表の「神殺」列で使用）
+   ・年支の三合局を基準にした桃花／駅馬／華蓋／将星／劫殺／亡神
+   ・日干を基準にした天乙貴人／羊刃／禄神
+   ・年支を基準にした孤辰／寡宿
+   ============================================================ */
+const SANHE_GROUP_OF={
+  "寅":"寅午戌","午":"寅午戌","戌":"寅午戌",
+  "申":"申子辰","子":"申子辰","辰":"申子辰",
+  "巳":"巳酉丑","酉":"巳酉丑","丑":"巳酉丑",
+  "亥":"亥卯未","卯":"亥卯未","未":"亥卯未",
+};
+const SHENSHA_ZHI_TABLE={
+  "桃花":{"寅午戌":"卯","申子辰":"酉","巳酉丑":"午","亥卯未":"子"},
+  "駅馬":{"寅午戌":"申","申子辰":"寅","巳酉丑":"亥","亥卯未":"巳"},
+  "華蓋":{"寅午戌":"戌","申子辰":"辰","巳酉丑":"丑","亥卯未":"未"},
+  "将星":{"寅午戌":"午","申子辰":"子","巳酉丑":"酉","亥卯未":"卯"},
+  "劫殺":{"寅午戌":"亥","申子辰":"巳","巳酉丑":"寅","亥卯未":"申"},
+  "亡神":{"寅午戌":"巳","申子辰":"亥","巳酉丑":"申","亥卯未":"寅"},
+};
+const TIANYI_GUIREN_TABLE={
+  "甲":["丑","未"],"戊":["丑","未"],"庚":["丑","未"],
+  "乙":["子","申"],"己":["子","申"],
+  "丙":["亥","酉"],"丁":["亥","酉"],
+  "壬":["卯","巳"],"癸":["卯","巳"],
+  "辛":["午","寅"],
+};
+const YANGREN_TABLE={"甲":"卯","丙":"午","戊":"午","庚":"酉","壬":"子"};
+const LUSHEN_TABLE={"甲":"寅","乙":"卯","丙":"巳","戊":"巳","丁":"午","己":"午","庚":"申","辛":"酉","壬":"亥","癸":"子"};
+function guchenGuasuOf(yearShi){
+  if(["亥","子","丑"].includes(yearShi)) return{gu:"寅",gua:"戌"};
+  if(["寅","卯","辰"].includes(yearShi)) return{gu:"巳",gua:"丑"};
+  if(["巳","午","未"].includes(yearShi)) return{gu:"申",gua:"辰"};
+  if(["申","酉","戌"].includes(yearShi)) return{gu:"亥",gua:"未"};
+  return null;
+}
+/**
+ * 命式の指定した柱の地支に成立する神殺を配列で返す
+ * @param {object} r - calcKanshiReki の結果（年支・日干を参照）
+ * @param {string} pillarShi - 判定対象の柱の地支
+ * @returns {string[]} 成立した神殺名の配列
+ */
+function calcShenShaForPillar(r, pillarShi){
+  if(!pillarShi || pillarShi==='-') return[];
+  const list=[];
+  const yearShi=r.year.s;
+  const dayKan=r.day.k;
+  const grp=SANHE_GROUP_OF[yearShi];
+  if(grp){
+    for(const name of Object.keys(SHENSHA_ZHI_TABLE)){
+      if(SHENSHA_ZHI_TABLE[name][grp]===pillarShi) list.push(name);
+    }
+  }
+  const tianyi=TIANYI_GUIREN_TABLE[dayKan];
+  if(tianyi && tianyi.includes(pillarShi)) list.push('天乙貴人');
+  if(YANGREN_TABLE[dayKan]===pillarShi) list.push('羊刃');
+  if(LUSHEN_TABLE[dayKan]===pillarShi) list.push('禄神');
+  const gg=guchenGuasuOf(yearShi);
+  if(gg){
+    if(gg.gu===pillarShi) list.push('孤辰');
+    if(gg.gua===pillarShi) list.push('寡宿');
+  }
+  return list;
 }
 
 /* ============================================================
@@ -1432,7 +1612,7 @@ function calcEnergyScores(r){
     for(const shiIdx of rootIndices){
       if(shiIdx>=pillars.length)continue;
       const shi=pillars[shiIdx].s;
-      // ★ 根点は十二運ではなく、天干×地支の根の強さ早見表（ROOT_STRENGTH_TABLE）に準拠
+      // ★ 根点は、十二運早見表（JUNIUN_TABLE）から自動導出した強さラベル（rootStrengthLabel）に準拠
       const label=rootStrengthLabel(p.k,shi);
       const pt=ROOT_LABEL_POINTS[label]??0;
       rootPt+=pt;
@@ -1731,6 +1911,7 @@ function renderMeishiki(r){
     <th>強さ<br><span style="font-weight:400;font-size:10px;">陰陽点＋根点</span></th>
     <th>Effect<br>（通変星）</th><th>Image<br>（十二運）</th><th>Aspect<br>（隣柱地支との角度）</th>
     <th>蔵干<br>（赤字＝司令）</th><th>蔵干の通変星<br>（赤字＝司令）</th>
+    <th>神殺</th>
   </tr>`;
 
   function zkCellHtml(shi,selectedStem){
@@ -1743,7 +1924,7 @@ function renderMeishiki(r){
   }
 
   function row(lbl,p,method,eIdx,aspectCell){
-    if(!p||p.k==='-')return`<tr><td class="lbl">${lbl}</td><td colspan="8">-</td></tr>`;
+    if(!p||p.k==='-')return`<tr><td class="lbl">${lbl}</td><td colspan="9">-</td></tr>`;
     let selectedStem;
     if(method==='days') selectedStem=zokanByDay(p.s,r.daysIntoMonth);
     else selectedStem=zokanMain(p.s);
@@ -1770,6 +1951,12 @@ function renderMeishiki(r){
       : `<td class="kanshi-tap" data-kanshi-type="effect" data-kanshi-char="${effectVal}" data-kanshi-label="${lbl}">${effectVal}</td>`;
     const imageCell = `<td class="kanshi-tap" data-kanshi-type="image" data-kanshi-char="${imageVal}" data-kanshi-label="${lbl}">${imageVal}</td>`;
 
+    /* ★ 神殺セル（年支の三合局＋日干を基準に、この柱の地支に成立する神殺を列挙） */
+    const shenshaList = calcShenShaForPillar(r, p.s);
+    const shenshaHtml = shenshaList.length
+      ? shenshaList.map(n=>`<span style="display:inline-block;background:var(--purple-pale);color:#5A2D82;font-size:10.5px;font-weight:700;padding:1px 5px;border-radius:2px;margin:1px 2px 1px 0;white-space:nowrap;">${n}</span>`).join('')
+      : `<span style="color:#bbb;font-size:11px;">-</span>`;
+
     return`<tr>
       <td class="lbl">${lbl}</td>
       <td class="ks kanshi-tap" data-kanshi-type="kan" data-kanshi-char="${p.k}" data-kanshi-label="${lbl}">${p.k}</td>
@@ -1780,6 +1967,7 @@ function renderMeishiki(r){
       <td>${aspectCell}</td>
       <td class="zk">${kHtml}</td>
       <td class="zk kanshi-tap" data-kanshi-type="ostar-detail" data-kanshi-num="${tsuhenseiNum}" data-kanshi-label="${lbl}">${tgHtml}</td>
+      <td style="min-width:100px;text-align:left;padding:6px 6px;">${shenshaHtml}</td>
     </tr>`;
   }
 
@@ -1794,9 +1982,9 @@ function renderMeishiki(r){
     +row('日柱',r.day,'days',2, day_asp)
     +(r.hour.k!=='-'
       ?row('時柱',r.hour,'days',3, '-')
-      :`<tr><td class="lbl">時柱</td><td colspan="8" style="color:var(--ink-soft);">時刻不明</td></tr>`);
+      :`<tr><td class="lbl">時柱</td><td colspan="9" style="color:var(--ink-soft);">時刻不明</td></tr>`);
 
-  document.getElementById('meishikiNote').innerHTML='';
+  document.getElementById('meishikiNote').innerHTML='※ 神殺：年支の三合局を基準にした桃花・駅馬・華蓋・将星・劫殺・亡神、日干を基準にした天乙貴人・羊刃・禄神、年支を基準にした孤辰・寡宿を判定しています。';
 }
 
 /* 基本情報カード */
@@ -1849,7 +2037,7 @@ function kichikuHantei(meishikiLabel, changeLabel) {
    ------------------------------------------------------------
    ①命式の各天干の強さ（既に算出済み）と、大運（年運／月運）の
    　地支に対する「その天干」の十二運早見表上の強さ
-   　（ROOT_STRENGTH_TABLE＝天干×地支の早見表）を比較し、
+   　（JUNIUN_TABLE＝十二運早見表から自動導出）を比較し、
    　kichikuHantei() で○△×判定する（命式が強い→根が弱い方が○／
    　命式が弱い→根が強い方が○、というルールは既存のkichikuHanteiを流用）。
    ②命式の天干と大運（年運／月運）天干の関係
@@ -1859,21 +2047,22 @@ function kichikuHantei(meishikiLabel, changeLabel) {
    　RELATION_KICHIKU_WEAK / RELATION_KICHIKU_STRONG 早見表で
    　○△×判定する。
    ============================================================ */
-const ROOT_STRENGTH_TABLE = {
-  "甲":{"子":"中強","丑":"強","寅":"最強","卯":"最強","辰":"強","巳":"中強","午":"中","未":"弱","申":"最弱","酉":"最弱","戌":"弱","亥":"中"},
-  "乙":{"子":"中強","丑":"強","寅":"最強","卯":"最強","辰":"強","巳":"中強","午":"中","未":"弱","申":"最弱","酉":"最弱","戌":"弱","亥":"中"},
-  "丙":{"子":"最弱","丑":"弱","寅":"中","卯":"中強","辰":"強","巳":"最強","午":"最強","未":"強","申":"中強","酉":"中","戌":"弱","亥":"最弱"},
-  "丁":{"子":"最弱","丑":"弱","寅":"中","卯":"中強","辰":"強","巳":"最強","午":"最強","未":"強","申":"中強","酉":"中","戌":"弱","亥":"最弱"},
-  "戊":{"子":"最弱","丑":"弱","寅":"中","卯":"中強","辰":"強","巳":"最強","午":"最強","未":"強","申":"中強","酉":"中","戌":"弱","亥":"最弱"},
-  "己":{"子":"最弱","丑":"弱","寅":"中","卯":"中強","辰":"強","巳":"最強","午":"最強","未":"強","申":"中強","酉":"中","戌":"弱","亥":"最弱"},
-  "庚":{"子":"中","丑":"弱","寅":"最弱","卯":"最弱","辰":"弱","巳":"中","午":"中強","未":"強","申":"最強","酉":"最強","戌":"強","亥":"中強"},
-  "辛":{"子":"中","丑":"弱","寅":"最弱","卯":"最弱","辰":"弱","巳":"中","午":"中強","未":"強","申":"最強","酉":"最強","戌":"強","亥":"中強"},
-  "壬":{"子":"最強","丑":"強","寅":"中強","卯":"中","辰":"弱","巳":"最弱","午":"最弱","未":"弱","申":"中","酉":"中強","戌":"強","亥":"最強"},
-  "癸":{"子":"最強","丑":"強","寅":"中強","卯":"中","辰":"弱","巳":"最弱","午":"最弱","未":"弱","申":"中","酉":"中強","戌":"強","亥":"最強"},
+/* 十二運ラベル→根の強さラベルの変換表
+   （J12_SCOREで同じ点数になる十二運同士を同じ強さ区分にまとめたもの：
+   　帝旺・建禄=最強／冠帯・衰=強／沐浴・病=中強／長生・死=中／養・墓=弱／胎・絶=最弱）
+   天干×地支の「強さ」は、上のJUNIUN_TABLE（十二運早見表）から自動的に導出する。
+   これにより、十二運早見表を変更すれば根の強さ判定にも自動的に反映される。 */
+const J12_TO_ROOT_LABEL = {
+  "帝旺":"最強","建禄":"最強",
+  "冠帯":"強","衰":"強",
+  "沐浴":"中強","病":"中強",
+  "長生":"中","死":"中",
+  "養":"弱","墓":"弱",
+  "胎":"最弱","絶":"最弱",
 };
-/* 天干kanが地支shiに乗ったときの早見表上の強さラベルを返す */
+/* 天干kanが地支shiに乗ったときの早見表上の強さラベルを返す（十二運早見表から自動導出） */
 function rootStrengthLabel(kan, shi){
-  return (ROOT_STRENGTH_TABLE[kan] && ROOT_STRENGTH_TABLE[kan][shi]) || '中';
+  return J12_TO_ROOT_LABEL[juniUn(kan, shi)] || '中';
 }
 /* 根の強さラベル→点数（最弱=0/弱=0.5/中=1/中強=1.5/強=2/最強=2.5） */
 const ROOT_LABEL_POINTS = {"最弱":0,"弱":0.5,"中":1,"中強":1.5,"強":2,"最強":2.5,"-":0};
@@ -9663,6 +9852,118 @@ function closeKanshiPopover(){
       if(e.key === 'Escape') closeKanshiPopover();
     });
   });
+})();
+
+/* ============================================================
+   十二支の関係 早見パネル ／ 十干×十二運 早見パネル
+   ・ページ読み込み時から常時使える（鑑定前でも動作する）静的な早見表。
+   ・十二支パネル：地支を1つ選ぶと、他の全地支との「支合・支冲・害・刑」を一覧表示。
+   ・十干パネル：天干を1つ選ぶと、十二支それぞれに対する十二運を一覧表示。
+   ============================================================ */
+(function(){
+  const shiBody = document.getElementById('shishi-panel-body');
+  const kanBody = document.getElementById('jikkan-panel-body');
+  if(!shiBody || !kanBody) return;
+
+  /* 関係ラベル配列 → バッジHTML（支合＝青、支冲／害／刑＝赤、なし＝グレー） */
+  function relTagsHtml(rels){
+    if(!rels || !rels.length) return '<span class="quickref-rel-tag quickref-rel-none">-</span>';
+    return rels.map(r=>{
+      const cls = (r==='支冲' || r==='害' || r.indexOf('刑')===0) ? 'angle-red' : 'angle-blue';
+      return '<span class="quickref-rel-tag ' + cls + '">' + r + '</span>';
+    }).join(' ');
+  }
+
+  /* ---- 十二支の関係パネル ---- */
+  function renderShiGrid(){
+    let html = '<div class="quickref-grid">';
+    for(const s of SHI){
+      html += '<button type="button" class="quickref-cell-btn" data-shi="' + s + '">' + s + '</button>';
+    }
+    html += '</div>';
+    shiBody.innerHTML = html;
+  }
+  function renderShiResult(base){
+    let rows = '';
+    for(const s of SHI){
+      let rels;
+      if(s === base){
+        rels = XING_SELF.includes(base) ? ['自刑'] : [];
+      } else {
+        rels = shiRelations(base, s);
+      }
+      const selfNote = (s === base) ? '（同支）' : '';
+      rows += '<div class="quickref-result-row"><span>' + base + '×' + s + selfNote + '</span>' + relTagsHtml(rels) + '</div>';
+    }
+    shiBody.innerHTML =
+      '<button type="button" class="quickref-back-btn" data-shishi-back>← 十二支を選び直す</button>' +
+      '<div class="quickref-title-row">「' + base + '」と各地支の関係（支合・支冲・害・刑）</div>' +
+      rows;
+  }
+  shiBody.addEventListener('click', function(e){
+    const backBtn = e.target.closest('[data-shishi-back]');
+    if(backBtn){ renderShiGrid(); return; }
+    const btn = e.target.closest('button[data-shi]');
+    if(btn){ renderShiResult(btn.getAttribute('data-shi')); }
+  });
+  renderShiGrid();
+
+  /* ---- 十干×十二運パネル ---- */
+  function renderKanGrid(){
+    let html = '<div class="quickref-grid-10">';
+    for(const k of KAN){
+      html += '<button type="button" class="quickref-cell-btn" data-kan="' + k + '">' + k + '</button>';
+    }
+    html += '</div>';
+    kanBody.innerHTML = html;
+  }
+  function renderKanResult(kan){
+    const yangrenShi = YANGREN_TABLE[kan] || null;
+    let rows = '';
+    for(const s of SHI){
+      const ju = juniUn(kan, s) || '-';
+      const isYangren = (s === yangrenShi);
+      const rowAttr = isYangren
+        ? ' style="background:var(--red-pale);margin:0 -12px;padding:5px 12px;"'
+        : '';
+      const yangrenBadge = isYangren
+        ? ' <span class="quickref-rel-tag angle-red">羊刃</span>'
+        : '';
+      rows += '<div class="quickref-result-row"' + rowAttr + '><span>' + kan + '×' + s + '</span><span><span class="quickref-rel-tag">' + ju + '</span>' + yangrenBadge + '</span></div>';
+    }
+    const yangrenNote = yangrenShi
+      ? '<div class="quickref-title-row">羊刃：<b style="color:var(--vermilion);">' + yangrenShi + '</b>（この十干が帝旺となる、もっとも強すぎる地支）</div>'
+      : '<div class="quickref-title-row" style="color:#bbb;">※ 陰干のため羊刃は成立しません</div>';
+    kanBody.innerHTML =
+      '<button type="button" class="quickref-back-btn" data-jikkan-back>← 十干を選び直す</button>' +
+      '<div class="quickref-title-row">「' + kan + '」の十二運（地支ごと）</div>' +
+      yangrenNote +
+      rows;
+  }
+  kanBody.addEventListener('click', function(e){
+    const backBtn = e.target.closest('[data-jikkan-back]');
+    if(backBtn){ renderKanGrid(); return; }
+    const btn = e.target.closest('button[data-kan]');
+    if(btn){ renderKanResult(btn.getAttribute('data-kan')); }
+  });
+  renderKanGrid();
+
+  /* パネルの外（他の場所）をタップ／クリックしたら、開いているパネルをすべて閉じて
+     選択結果もリセットし、次に開いたときは常に最初の一覧（グリッド）から始まるようにする。
+     ※ キャプチャフェーズ（true）で判定することがポイント：十二支・十干ボタンをタップすると
+       shiBody/kanBodyのinnerHTMLがその場で書き換わり、クリックされたボタン自体はDOMから
+       外れてしまう。バブルフェーズ（通常）で判定すると、そのときにはe.targetがすでに
+       wrapから外れて見えてしまい「外側をタップした」と誤判定してパネルが閉じてしまう。
+       内容が書き換わる前のキャプチャフェーズで先に判定することで、この誤動作を防ぐ。 */
+  const wrap = document.getElementById('quick-ref-wrap');
+  if(wrap){
+    document.addEventListener('click', function(e){
+      if(wrap.contains(e.target)) return;
+      wrap.querySelectorAll('details[open]').forEach(d=>{ d.open = false; });
+      renderShiGrid();
+      renderKanGrid();
+    }, true);
+  }
 })();
 
 </script>

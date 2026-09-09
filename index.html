@@ -490,6 +490,14 @@ table.ytbl tr:first-child th,table.meishiki tr:first-child th{
 .quickref-rel-tag.angle-red{background:var(--red-pale);color:#A00030;}
 .quickref-rel-none{color:#bbb;font-weight:400;}
 
+/* 時柱早見表パネル（横に長い表のため、他の早見パネルより幅広に） */
+#jichu-panel{width:340px;max-width:86vw;}
+.jichu-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table.jichu-table{border-collapse:collapse;font-size:11px;white-space:nowrap;width:100%;}
+table.jichu-table th,table.jichu-table td{border:1px solid var(--line-soft);padding:5px 6px;text-align:center;}
+table.jichu-table th{background:var(--bg);color:var(--ink-soft);font-weight:600;font-size:10.5px;}
+table.jichu-table td.jichu-shi{font-weight:700;color:var(--vermilion);}
+
 
 /* ===== パスワード認証画面 ===== */
 #auth-screen{
@@ -842,6 +850,35 @@ document.addEventListener('DOMContentLoaded', initAuth);
 <details class="quickref-panel" id="jikkan-panel">
   <summary>十干×十二運 早見</summary>
   <div class="quickref-body" id="jikkan-panel-body"></div>
+</details>
+
+<details class="quickref-panel" id="jichu-panel">
+  <summary>時柱早見表</summary>
+  <div class="quickref-body">
+    <div class="jichu-table-wrap">
+      <table class="jichu-table">
+        <tr>
+          <th>時間帯</th><th>十二支</th>
+          <th>甲・己の日</th><th>乙・庚の日</th><th>丙・辛の日</th><th>丁・壬の日</th><th>戊・癸の日</th>
+        </tr>
+        <tr><td>23:00〜01:00</td><td class="jichu-shi">子</td><td>甲子</td><td>丙子</td><td>戊子</td><td>庚子</td><td>壬子</td></tr>
+        <tr><td>01:00〜03:00</td><td class="jichu-shi">丑</td><td>乙丑</td><td>丁丑</td><td>己丑</td><td>辛丑</td><td>癸丑</td></tr>
+        <tr><td>03:00〜05:00</td><td class="jichu-shi">寅</td><td>丙寅</td><td>戊寅</td><td>庚寅</td><td>壬寅</td><td>甲寅</td></tr>
+        <tr><td>05:00〜07:00</td><td class="jichu-shi">卯</td><td>丁卯</td><td>己卯</td><td>辛卯</td><td>癸卯</td><td>乙卯</td></tr>
+        <tr><td>07:00〜09:00</td><td class="jichu-shi">辰</td><td>戊辰</td><td>庚辰</td><td>壬辰</td><td>甲辰</td><td>丙辰</td></tr>
+        <tr><td>09:00〜11:00</td><td class="jichu-shi">巳</td><td>己巳</td><td>辛巳</td><td>癸巳</td><td>乙巳</td><td>丁巳</td></tr>
+        <tr><td>11:00〜13:00</td><td class="jichu-shi">午</td><td>庚午</td><td>壬午</td><td>甲午</td><td>丙午</td><td>戊午</td></tr>
+        <tr><td>13:00〜15:00</td><td class="jichu-shi">未</td><td>辛未</td><td>癸未</td><td>乙未</td><td>丁未</td><td>己未</td></tr>
+        <tr><td>15:00〜17:00</td><td class="jichu-shi">申</td><td>壬申</td><td>甲申</td><td>丙申</td><td>戊申</td><td>庚申</td></tr>
+        <tr><td>17:00〜19:00</td><td class="jichu-shi">酉</td><td>癸酉</td><td>乙酉</td><td>丁酉</td><td>己酉</td><td>辛酉</td></tr>
+        <tr><td>19:00〜21:00</td><td class="jichu-shi">戌</td><td>甲戌</td><td>丙戌</td><td>戊戌</td><td>庚戌</td><td>壬戌</td></tr>
+        <tr><td>21:00〜23:00</td><td class="jichu-shi">亥</td><td>乙亥</td><td>丁亥</td><td>己亥</td><td>辛亥</td><td>癸亥</td></tr>
+      </table>
+    </div>
+    <p style="font-size:10px;color:var(--ink-soft);margin:8px 0 0;line-height:1.5;">
+      時柱の地支は生まれた時間で固定、天干は日干（生まれた日の十干）との組み合わせ（五鼠遁）で決まります。
+    </p>
+  </div>
 </details>
 </div>
 

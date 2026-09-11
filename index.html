@@ -498,6 +498,9 @@ table.jichu-table th,table.jichu-table td{border:1px solid var(--line-soft);padd
 table.jichu-table th{background:var(--bg);color:var(--ink-soft);font-weight:600;font-size:10.5px;}
 table.jichu-table td.jichu-shi{font-weight:700;color:var(--vermilion);}
 
+/* 神殺早見表パネル（神殺名の一覧＋タップで判定ルール表） */
+#shensha-panel{width:280px;max-width:86vw;}
+
 
 /* ===== パスワード認証画面 ===== */
 #auth-screen{
@@ -879,6 +882,11 @@ document.addEventListener('DOMContentLoaded', initAuth);
       時柱の地支は生まれた時間で固定、天干は日干（生まれた日の十干）との組み合わせ（五鼠遁）で決まります。
     </p>
   </div>
+</details>
+
+<details class="quickref-panel" id="shensha-panel">
+  <summary>神殺早見表</summary>
+  <div class="quickref-body" id="shensha-panel-body"></div>
 </details>
 </div>
 
@@ -9900,6 +9908,7 @@ function closeKanshiPopover(){
 (function(){
   const shiBody = document.getElementById('shishi-panel-body');
   const kanBody = document.getElementById('jikkan-panel-body');
+  const shenshaBody = document.getElementById('shensha-panel-body');
   if(!shiBody || !kanBody) return;
 
   /* 関係ラベル配列 → バッジHTML（支合＝青、支冲／害／刑＝赤、なし＝グレー） */
@@ -9985,6 +9994,75 @@ function closeKanshiPopover(){
   });
   renderKanGrid();
 
+  /* ---- 神殺早見表パネル ---- */
+  const SHENSHA_LIST = ['桃花','駅馬','華蓋','将星','劫殺','亡神','天乙貴人','羊刃','禄神','孤辰','寡宿'];
+  const SHENSHA_MEANING = {
+    '桃花':'色気・魅力・異性からの人気を表す神殺',
+    '駅馬':'移動・転居・出張など「動き」の運を表す神殺',
+    '華蓋':'芸術・宗教・孤独を好む文化的センスを表す神殺',
+    '将星':'リーダー気質・統率力を表す神殺',
+    '劫殺':'衝動的なトラブルや強引さを表す神殺',
+    '亡神':'精神的な浮き沈み・喪失を表す神殺',
+    '天乙貴人':'日干から見てもっとも助けとなる、最強の吉星',
+    '羊刃':'陽干のみに成立する、鋭さと過剰さを併せ持つ強力な星',
+    '禄神':'日干の禄（安定した収入・地位）を表す星',
+    '孤辰':'年支を基準にした、縁の薄さ・孤独を表す神殺',
+    '寡宿':'年支を基準にした、縁の薄さ・孤独を表す神殺',
+  };
+  const GUCHEN_GUASU_GROUPS = [
+    ['亥子丑','寅','戌'],
+    ['寅卯辰','巳','丑'],
+    ['巳午未','申','辰'],
+    ['申酉戌','亥','未'],
+  ];
+  function shenshaRuleData(name){
+    if(SHENSHA_ZHI_TABLE[name]){
+      const t = SHENSHA_ZHI_TABLE[name];
+      return { basisLabel:'年支の三合局', resultLabel:'該当する地支', rows: Object.keys(t).map(g=>[g, t[g]]) };
+    }
+    if(name==='天乙貴人'){
+      return { basisLabel:'日干', resultLabel:'該当する地支', rows: Array.from(KAN).filter(k=>TIANYI_GUIREN_TABLE[k]).map(k=>[k, TIANYI_GUIREN_TABLE[k].join('・')]) };
+    }
+    if(name==='羊刃'){
+      return { basisLabel:'日干（陽干のみ成立）', resultLabel:'該当する地支', rows: Array.from(KAN).filter(k=>YANGREN_TABLE[k]).map(k=>[k, YANGREN_TABLE[k]]) };
+    }
+    if(name==='禄神'){
+      return { basisLabel:'日干', resultLabel:'該当する地支', rows: Array.from(KAN).filter(k=>LUSHEN_TABLE[k]).map(k=>[k, LUSHEN_TABLE[k]]) };
+    }
+    if(name==='孤辰' || name==='寡宿'){
+      const idx = (name==='孤辰') ? 1 : 2;
+      return { basisLabel:'年支のグループ', resultLabel:'該当する地支', rows: GUCHEN_GUASU_GROUPS.map(g=>[g[0], g[idx]]) };
+    }
+    return { basisLabel:'-', resultLabel:'-', rows:[] };
+  }
+  function renderShenshaGrid(){
+    let html = '<div class="quickref-grid" style="grid-template-columns:repeat(3,1fr);">';
+    for(const name of SHENSHA_LIST){
+      html += '<button type="button" class="quickref-cell-btn" style="font-size:12.5px;padding:8px 2px;" data-shensha="' + name + '">' + name + '</button>';
+    }
+    html += '</div>';
+    shenshaBody.innerHTML = html;
+  }
+  function renderShenshaResult(name){
+    const info = shenshaRuleData(name);
+    const rowsHtml = info.rows.map(([cond,result])=>
+      '<tr><td>' + cond + '</td><td class="jichu-shi">' + result + '</td></tr>'
+    ).join('');
+    shenshaBody.innerHTML =
+      '<button type="button" class="quickref-back-btn" data-shensha-back>← 神殺を選び直す</button>' +
+      '<div class="quickref-title-row" style="line-height:1.5;">「' + name + '」<br>' + (SHENSHA_MEANING[name] || '') + '</div>' +
+      '<div class="jichu-table-wrap"><table class="jichu-table"><tr><th>' + info.basisLabel + '</th><th>' + info.resultLabel + '</th></tr>' + rowsHtml + '</table></div>';
+  }
+  if(shenshaBody){
+    shenshaBody.addEventListener('click', function(e){
+      const backBtn = e.target.closest('[data-shensha-back]');
+      if(backBtn){ renderShenshaGrid(); return; }
+      const btn = e.target.closest('button[data-shensha]');
+      if(btn){ renderShenshaResult(btn.getAttribute('data-shensha')); }
+    });
+    renderShenshaGrid();
+  }
+
   /* パネルの外（他の場所）をタップ／クリックしたら、開いているパネルをすべて閉じて
      選択結果もリセットし、次に開いたときは常に最初の一覧（グリッド）から始まるようにする。
      ※ キャプチャフェーズ（true）で判定することがポイント：十二支・十干ボタンをタップすると
@@ -9999,6 +10077,7 @@ function closeKanshiPopover(){
       wrap.querySelectorAll('details[open]').forEach(d=>{ d.open = false; });
       renderShiGrid();
       renderKanGrid();
+      if(shenshaBody) renderShenshaGrid();
     }, true);
   }
 })();

@@ -633,6 +633,55 @@ td.kanshi-tap::after{
   #kanshiPopSheet .kp-handle{display:none;}
 }
 
+
+/* ===== 早見表モーダル ===== */
+#qrFab{position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:500;
+  height:46px;min-height:46px;padding:0 20px;border-radius:23px;border:none;
+  background:rgba(43,60,78,.88);color:#fff;font-size:14px;font-weight:700;letter-spacing:.04em;
+  font-family:inherit;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);}
+#qrFab:active{background:var(--indigo);}
+#qrBackdrop{position:fixed;inset:0;z-index:2200;background:rgba(33,28,22,.45);
+  display:none;align-items:center;justify-content:center;
+  -webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px);}
+#qrBackdrop.open{display:flex;}
+#qrModal{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  width:80vw;min-width:min(94vw,340px);max-width:960px;
+  height:80vh;height:80dvh;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 10px 40px rgba(0,0,0,.3);}
+.qr-head{display:grid;grid-template-columns:96px 1fr 96px;align-items:center;
+  padding:10px 12px;border-bottom:1px solid var(--line-soft);flex:none;background:var(--bg);}
+.qr-title{text-align:center;font-family:"Hiragino Mincho ProN","Noto Serif JP",serif;font-size:17px;font-weight:700;}
+.qr-hbtn{min-height:40px;padding:0 12px;border:1px solid var(--line);background:#fff;color:var(--ink);
+  border-radius:20px;font-size:14px;font-family:inherit;cursor:pointer;justify-self:start;}
+.qr-close{justify-self:end;width:40px;padding:0;font-size:16px;}
+.qr-hbtn:active{background:var(--purple-pale);}
+.qr-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px;}
+[hidden]{display:none!important;}
+.qr-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
+.qr-menu-btn{display:flex;align-items:center;gap:14px;text-align:left;padding:20px 18px;min-height:84px;
+  border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:var(--ink);}
+.qr-menu-btn:active{background:var(--purple-pale);}
+.qr-menu-btn b{display:block;font-size:16px;}
+.qr-menu-btn small{display:block;font-size:12px;color:var(--ink-soft);margin-top:3px;}
+.qr-ico{font-size:20px;color:var(--gold);flex:none;}
+/* モーダル内では内容を大きく見やすく */
+#qrModal .quickref-back-btn{display:none;}
+#qrModal .quickref-grid{grid-template-columns:repeat(4,1fr);gap:12px;}
+#qrModal .quickref-grid-10{grid-template-columns:repeat(5,1fr);gap:12px;}
+#qrModal .quickref-cell-btn{padding:20px 0;font-size:22px;border-radius:6px;}
+#qrModal .quickref-title-row{font-size:13px;margin-bottom:10px;}
+#qrModal .quickref-result-row{font-size:15px;padding:9px 0;}
+#qrModal .quickref-rel-tag{font-size:12.5px;padding:2px 8px;}
+#qrModal table.jichu-table{font-size:14px;}
+#qrModal table.jichu-table th,#qrModal table.jichu-table td{padding:8px 10px;}
+#qrModal .kaika-legend-row{font-size:15px;padding:8px 0;}
+#qrModal .kaika-legend-range{font-size:12px;min-width:56px;}
+#qrModal .kaika-legend-color{width:18px;height:18px;}
+#qrModal .kaika-legend-body p{font-size:12.5px!important;}
+@media(max-width:600px){
+  #qrModal{width:94vw;height:86dvh;}
+  #qrModal .quickref-grid{grid-template-columns:repeat(3,1fr);}
+}
 </style>
 
 </head>
@@ -799,11 +848,50 @@ document.addEventListener('DOMContentLoaded', initAuth);
 
 </script>
 
-<!-- 早見パネル群（右下固定）：開花指数凡例／十二支の関係／十干×十二運 -->
-<div id="quick-ref-wrap">
-<details id="kaika-legend-panel">
-  <summary>開花指数 凡例</summary>
-  <div class="kaika-legend-body">
+<!-- 早見表：ボタン1つ＋大きなモーダル -->
+<button id="qrFab" type="button" aria-label="早見表を開く">📖 早見表</button>
+<div id="qrBackdrop">
+  <div id="qrModal" role="dialog" aria-modal="true">
+    <div class="qr-head">
+      <button type="button" id="qrBack" class="qr-hbtn" aria-label="前の画面に戻る">‹ 戻る</button>
+      <div id="qrTitle" class="qr-title">早見表</div>
+      <button type="button" id="qrClose" class="qr-hbtn qr-close" aria-label="閉じる">✕</button>
+    </div>
+    <div class="qr-body">
+      <div id="qrMenu" class="qr-menu">
+        <button type="button" class="qr-menu-btn" data-qr="shishi"><span class="qr-ico">◆</span><span><b>十二支の関係</b><small>支合・支冲・害・刑を地支ごとに確認</small></span></button>
+        <button type="button" class="qr-menu-btn" data-qr="jikkan"><span class="qr-ico">◆</span><span><b>十干×十二運</b><small>天干ごとの十二運と羊刃</small></span></button>
+        <button type="button" class="qr-menu-btn" data-qr="jichu"><span class="qr-ico">◆</span><span><b>時柱早見表</b><small>日干と時間帯から時柱を確認</small></span></button>
+        <button type="button" class="qr-menu-btn" data-qr="kaika"><span class="qr-ico">☀</span><span><b>開花指数 凡例</b><small>点数と天気の対応・計算ルール</small></span></button>
+      </div>
+      <div class="qr-view" id="qr-shishi" hidden><div id="shishi-panel-body"></div></div>
+      <div class="qr-view" id="qr-jikkan" hidden><div id="jikkan-panel-body"></div></div>
+      <div class="qr-view" id="qr-jichu" hidden>
+    <div class="jichu-table-wrap">
+      <table class="jichu-table">
+        <tr>
+          <th>時間帯</th><th>十二支</th>
+          <th>甲・己の日</th><th>乙・庚の日</th><th>丙・辛の日</th><th>丁・壬の日</th><th>戊・癸の日</th>
+        </tr>
+        <tr><td>23:00〜01:00</td><td class="jichu-shi">子</td><td>甲子</td><td>丙子</td><td>戊子</td><td>庚子</td><td>壬子</td></tr>
+        <tr><td>01:00〜03:00</td><td class="jichu-shi">丑</td><td>乙丑</td><td>丁丑</td><td>己丑</td><td>辛丑</td><td>癸丑</td></tr>
+        <tr><td>03:00〜05:00</td><td class="jichu-shi">寅</td><td>丙寅</td><td>戊寅</td><td>庚寅</td><td>壬寅</td><td>甲寅</td></tr>
+        <tr><td>05:00〜07:00</td><td class="jichu-shi">卯</td><td>丁卯</td><td>己卯</td><td>辛卯</td><td>癸卯</td><td>乙卯</td></tr>
+        <tr><td>07:00〜09:00</td><td class="jichu-shi">辰</td><td>戊辰</td><td>庚辰</td><td>壬辰</td><td>甲辰</td><td>丙辰</td></tr>
+        <tr><td>09:00〜11:00</td><td class="jichu-shi">巳</td><td>己巳</td><td>辛巳</td><td>癸巳</td><td>乙巳</td><td>丁巳</td></tr>
+        <tr><td>11:00〜13:00</td><td class="jichu-shi">午</td><td>庚午</td><td>壬午</td><td>甲午</td><td>丙午</td><td>戊午</td></tr>
+        <tr><td>13:00〜15:00</td><td class="jichu-shi">未</td><td>辛未</td><td>癸未</td><td>乙未</td><td>丁未</td><td>己未</td></tr>
+        <tr><td>15:00〜17:00</td><td class="jichu-shi">申</td><td>壬申</td><td>甲申</td><td>丙申</td><td>戊申</td><td>庚申</td></tr>
+        <tr><td>17:00〜19:00</td><td class="jichu-shi">酉</td><td>癸酉</td><td>乙酉</td><td>丁酉</td><td>己酉</td><td>辛酉</td></tr>
+        <tr><td>19:00〜21:00</td><td class="jichu-shi">戌</td><td>甲戌</td><td>丙戌</td><td>戊戌</td><td>庚戌</td><td>壬戌</td></tr>
+        <tr><td>21:00〜23:00</td><td class="jichu-shi">亥</td><td>乙亥</td><td>丁亥</td><td>己亥</td><td>辛亥</td><td>癸亥</td></tr>
+      </table>
+    </div>
+    <p style="font-size:10px;color:var(--ink-soft);margin:8px 0 0;line-height:1.5;">
+      時柱の地支は生まれた時間で固定、天干は日干（生まれた日の十干）との組み合わせ（五鼠遁）で決まります。
+    </p>
+  </div>
+      <div class="qr-view" id="qr-kaika" hidden><div class="kaika-legend-body">
     <div class="kaika-legend-row">
       <div class="kaika-legend-color" style="background:#C0392B;"></div>
       <div class="kaika-legend-name kaika-天気-日本晴れ">日本晴れ</div>
@@ -839,47 +927,9 @@ document.addEventListener('DOMContentLoaded', initAuth);
       組み合わせ○=+4／エネルギー交換○=+2,×=−2／根○=+1,×=−1。<br>
       対象期間（大運・年運・月運）自体が死神の年は−4。
     </p>
-  </div>
-</details>
-
-<details class="quickref-panel" id="shishi-panel">
-  <summary>十二支の関係 早見</summary>
-  <div class="quickref-body" id="shishi-panel-body"></div>
-</details>
-
-<details class="quickref-panel" id="jikkan-panel">
-  <summary>十干×十二運 早見</summary>
-  <div class="quickref-body" id="jikkan-panel-body"></div>
-</details>
-
-<details class="quickref-panel" id="jichu-panel">
-  <summary>時柱早見表</summary>
-  <div class="quickref-body">
-    <div class="jichu-table-wrap">
-      <table class="jichu-table">
-        <tr>
-          <th>時間帯</th><th>十二支</th>
-          <th>甲・己の日</th><th>乙・庚の日</th><th>丙・辛の日</th><th>丁・壬の日</th><th>戊・癸の日</th>
-        </tr>
-        <tr><td>23:00〜01:00</td><td class="jichu-shi">子</td><td>甲子</td><td>丙子</td><td>戊子</td><td>庚子</td><td>壬子</td></tr>
-        <tr><td>01:00〜03:00</td><td class="jichu-shi">丑</td><td>乙丑</td><td>丁丑</td><td>己丑</td><td>辛丑</td><td>癸丑</td></tr>
-        <tr><td>03:00〜05:00</td><td class="jichu-shi">寅</td><td>丙寅</td><td>戊寅</td><td>庚寅</td><td>壬寅</td><td>甲寅</td></tr>
-        <tr><td>05:00〜07:00</td><td class="jichu-shi">卯</td><td>丁卯</td><td>己卯</td><td>辛卯</td><td>癸卯</td><td>乙卯</td></tr>
-        <tr><td>07:00〜09:00</td><td class="jichu-shi">辰</td><td>戊辰</td><td>庚辰</td><td>壬辰</td><td>甲辰</td><td>丙辰</td></tr>
-        <tr><td>09:00〜11:00</td><td class="jichu-shi">巳</td><td>己巳</td><td>辛巳</td><td>癸巳</td><td>乙巳</td><td>丁巳</td></tr>
-        <tr><td>11:00〜13:00</td><td class="jichu-shi">午</td><td>庚午</td><td>壬午</td><td>甲午</td><td>丙午</td><td>戊午</td></tr>
-        <tr><td>13:00〜15:00</td><td class="jichu-shi">未</td><td>辛未</td><td>癸未</td><td>乙未</td><td>丁未</td><td>己未</td></tr>
-        <tr><td>15:00〜17:00</td><td class="jichu-shi">申</td><td>壬申</td><td>甲申</td><td>丙申</td><td>戊申</td><td>庚申</td></tr>
-        <tr><td>17:00〜19:00</td><td class="jichu-shi">酉</td><td>癸酉</td><td>乙酉</td><td>丁酉</td><td>己酉</td><td>辛酉</td></tr>
-        <tr><td>19:00〜21:00</td><td class="jichu-shi">戌</td><td>甲戌</td><td>丙戌</td><td>戊戌</td><td>庚戌</td><td>壬戌</td></tr>
-        <tr><td>21:00〜23:00</td><td class="jichu-shi">亥</td><td>乙亥</td><td>丁亥</td><td>己亥</td><td>辛亥</td><td>癸亥</td></tr>
-      </table>
+  </div></div>
     </div>
-    <p style="font-size:10px;color:var(--ink-soft);margin:8px 0 0;line-height:1.5;">
-      時柱の地支は生まれた時間で固定、天干は日干（生まれた日の十干）との組み合わせ（五鼠遁）で決まります。
-    </p>
   </div>
-</details>
 </div>
 
 <div class="wrap">
@@ -10008,24 +10058,74 @@ function closeKanshiPopover(){
   });
   renderKanGrid();
 
-  /* パネルの外（他の場所）をタップ／クリックしたら、開いているパネルをすべて閉じて
-     選択結果もリセットし、次に開いたときは常に最初の一覧（グリッド）から始まるようにする。
-     ※ キャプチャフェーズ（true）で判定することがポイント：十二支・十干ボタンをタップすると
-       shiBody/kanBodyのinnerHTMLがその場で書き換わり、クリックされたボタン自体はDOMから
-       外れてしまう。バブルフェーズ（通常）で判定すると、そのときにはe.targetがすでに
-       wrapから外れて見えてしまい「外側をタップした」と誤判定してパネルが閉じてしまう。
-       内容が書き換わる前のキャプチャフェーズで先に判定することで、この誤動作を防ぐ。 */
-  const wrap = document.getElementById('quick-ref-wrap');
-  if(wrap){
-    document.addEventListener('click', function(e){
-      if(wrap.contains(e.target)) return;
-      wrap.querySelectorAll('details[open]').forEach(d=>{ d.open = false; });
-      renderShiGrid();
-      renderKanGrid();
-    }, true);
-  }
 })();
 
+
+/* ============================================================
+   早見表モーダルの開閉・画面遷移
+   メニュー → 各早見表 →（十二支／十干は選択後の結果画面）の順に進み、
+   左上の「戻る」で1つ前の画面へ、右上の「✕」でいつでも閉じられる。
+   ============================================================ */
+(function(){
+  const fab=document.getElementById('qrFab');
+  const backdrop=document.getElementById('qrBackdrop');
+  const backBtn=document.getElementById('qrBack');
+  const closeBtn=document.getElementById('qrClose');
+  const titleEl=document.getElementById('qrTitle');
+  const menu=document.getElementById('qrMenu');
+  if(!fab||!backdrop) return;
+  const VIEWS={
+    shishi:{el:document.getElementById('qr-shishi'),title:'十二支の関係',body:'shishi-panel-body'},
+    jikkan:{el:document.getElementById('qr-jikkan'),title:'十干×十二運',body:'jikkan-panel-body'},
+    jichu:{el:document.getElementById('qr-jichu'),title:'時柱早見表'},
+    kaika:{el:document.getElementById('qr-kaika'),title:'開花指数 凡例'},
+  };
+  let current=null;
+  function innerBack(key){
+    const v=VIEWS[key]; if(!v||!v.body) return null;
+    return document.querySelector('#'+v.body+' .quickref-back-btn');
+  }
+  function showMenu(){
+    current=null;
+    menu.hidden=false;
+    Object.values(VIEWS).forEach(v=>v.el.hidden=true);
+    titleEl.textContent='早見表';
+    backBtn.style.visibility='hidden';
+    document.querySelector('#qrModal .qr-body').scrollTop=0;
+  }
+  function showView(key){
+    current=key;
+    menu.hidden=true;
+    Object.entries(VIEWS).forEach(([k,v])=>v.el.hidden=(k!==key));
+    titleEl.textContent=VIEWS[key].title;
+    backBtn.style.visibility='visible';
+    document.querySelector('#qrModal .qr-body').scrollTop=0;
+  }
+  function openModal(){ backdrop.classList.add('open'); showMenu(); }
+  function closeModal(){
+    backdrop.classList.remove('open');
+    ['shishi','jikkan'].forEach(k=>{const b=innerBack(k); if(b) b.click();});
+    showMenu();
+  }
+  fab.addEventListener('click',openModal);
+  closeBtn.addEventListener('click',closeModal);
+  backdrop.addEventListener('click',e=>{ if(e.target===backdrop) closeModal(); });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape' && backdrop.classList.contains('open')) closeModal();
+  });
+  menu.addEventListener('click',e=>{
+    const b=e.target.closest('[data-qr]');
+    if(b) showView(b.getAttribute('data-qr'));
+  });
+  backBtn.addEventListener('click',()=>{
+    if(current){
+      const ib=innerBack(current);
+      if(ib){ ib.click(); return; }   // 結果画面 → 選択画面
+    }
+    showMenu();                        // 各早見表 → メニュー
+  });
+  showMenu();
+})();
 </script>
 </body>
 </html>

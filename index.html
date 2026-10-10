@@ -1841,19 +1841,32 @@ function daiunKanshi(monthIdx1,jg,daiunStartAge,age){
   return KAN[i%10]+SHI[i%12];
 }
 function buildDaiunBlocks(r,blockCount){
-  const{daiYears,jg}=r.daiun;
+  const{daiYears,daiMons,jg}=r.daiun;
   const mIdx=r.month.i;
+  // 立運が「〇歳2ヶ月以上」の場合、表示上の年齢を+1歳する（干支の計算は従来どおり）
+  const shift=(daiMons>=2)?1:0;
+  const startAge=daiYears+shift;
   const blocks=[];
-  if(daiYears>0){
-    blocks.push({ageStart:0,ageEnd:daiYears-1,kanshi:r.month.k+r.month.s});
+  if(startAge>0){
+    blocks.push({ageStart:0,ageEnd:startAge-1,kanshi:r.month.k+r.month.s});
   }
   for(let k=0;k<blockCount;k++){
-    const ageStart=daiYears+k*10;
+    const ageStart=startAge+k*10;
     const ageEnd=ageStart+9;
-    const kanshi=daiunKanshi(mIdx,jg,daiYears,ageStart);
+    const kanshi=daiunKanshi(mIdx,jg,daiYears,daiYears+k*10);
     blocks.push({ageStart,ageEnd,kanshi});
   }
   return blocks;
+}
+
+/* 大運表（buildDaiunBlocks）と同じ年齢区分で、指定年齢の大運干支を返す（年運表・月運表用） */
+function daiunKanshiAtAge(r,age){
+  const n=Math.max(12,Math.ceil(Math.max(age,0)/10)+3);
+  const blocks=buildDaiunBlocks(r,n);
+  for(const b of blocks){
+    if(age>=b.ageStart&&age<=b.ageEnd)return b.kanshi;
+  }
+  return blocks[0].kanshi;
 }
 
 /* ============================================================
@@ -3325,7 +3338,7 @@ function renderTable(){
   for(let y=start;y<start+count;y++){
     const age0=y-by;
     const ks=yearKanshi(y);
-    const du0=daiunKanshi(mIdx,jg,daiYears,age0);
+    const du0=daiunKanshiAtAge(r,age0);
     const ki = calcNenunKaikaIndex(r, ks[0], ks[1], du0[0], du0[1]);
     kaikaList.push(ki ? ki.score : 0);
   }
@@ -3334,7 +3347,7 @@ function renderTable(){
   for(let y=start;y<start+count;y++){
     const age=y-by;
     const ks=yearKanshi(y);
-    const du=daiunKanshi(mIdx,jg,daiYears,age);
+    const du=daiunKanshiAtAge(r,age);
     const duKan=du[0];
     const yrKan=ks[0];   // その年の年干
     const unki=gsUnki(grp,kg,y);
@@ -4444,7 +4457,7 @@ function renderGetsuunTable() {
 
   const { daiun } = r;
   const mIdxBase = r.month.i;
-  const du = daiunKanshi(mIdxBase, daiun.jg, daiun.daiYears, age);
+  const du = daiunKanshiAtAge(r, age);
   const duKan = du[0], duShi = du[1];
 
   // 年干支

@@ -682,6 +682,56 @@ td.kanshi-tap::after{
   #qrModal{width:94vw;height:86dvh;}
   #qrModal .quickref-grid{grid-template-columns:repeat(3,1fr);}
 }
+
+/* ===== 干の関係表 ===== */
+.kr-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table.kr-table{border-collapse:collapse;width:100%;min-width:520px;table-layout:fixed;}
+table.kr-table th,table.kr-table td{border:1px solid var(--line-soft);text-align:center;padding:6px 2px;vertical-align:middle;}
+table.kr-table th{background:var(--bg);font-family:"Hiragino Mincho ProN","Noto Serif JP",serif;font-size:20px;font-weight:700;}
+table.kr-table th.kr-corner{font-size:10px;font-weight:400;color:var(--ink-soft);font-family:inherit;line-height:1.3;}
+table.kr-table td{height:54px;}
+.kr-m{display:block;font-size:20px;font-weight:700;line-height:1.1;}
+.kr-n{display:block;font-size:10px;color:var(--ink-soft);line-height:1.25;margin-top:2px;word-break:keep-all;}
+td.kr-o{background:#EAF4FB;}td.kr-o .kr-m{color:#1565C0;}
+td.kr-t{background:#FFF3E3;}td.kr-t .kr-m{color:#E65100;}
+td.kr-x{background:#FCE9E9;}td.kr-x .kr-m{color:#B71C1C;}
+td.kr-q{background:#F3F0E8;}
+td.kr-self{outline:2px solid var(--gold);outline-offset:-2px;}
+.kr-legend{font-size:12px;color:var(--ink-soft);margin:0 0 10px;line-height:1.7;}
+@media(max-width:600px){table.kr-table th{font-size:16px;}.kr-m{font-size:17px;}.kr-n{font-size:9px;}}
+
+/* ===== 干の関係表 ===== */
+.kan-caption{min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;
+  font-size:15px;border:1px solid var(--line-soft);background:var(--bg);border-radius:8px;padding:6px 10px;margin-bottom:12px;color:var(--ink-soft);}
+.kan-caption b{color:var(--ink);font-family:"Hiragino Mincho ProN","Noto Serif JP",serif;font-size:18px;}
+.kan-scroll{overflow-x:auto;}
+table.kan-table{border-collapse:separate;border-spacing:3px;width:100%;table-layout:fixed;}
+.kan-table th{font-family:"Hiragino Mincho ProN","Noto Serif JP",serif;font-size:16px;font-weight:700;color:var(--indigo);padding:6px 0;background:none;}
+.kan-table th.kan-corner{font-size:10px;color:var(--ink-soft);font-weight:400;}
+.kan-table td{position:relative;text-align:center;height:44px;min-width:0;border-radius:6px;font-size:19px;font-weight:700;cursor:pointer;
+  border:2px solid transparent;-webkit-tap-highlight-color:transparent;}
+.kan-table td.k-o{background:#DDEEDC;color:#2E6B3A;}
+.kan-table td.k-t{background:#FBEFC8;color:#8A6A12;}
+.kan-table td.k-x{background:#F6D9D5;color:#A8372A;}
+.kan-table td.k-q{background:#E6E0EE;color:#5B4A78;}
+.kan-table td.sel{border-color:var(--indigo);box-shadow:0 0 0 1px var(--indigo);}
+.kan-table td.hasnote::after{content:"";position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--indigo);}
+.kan-table tr.rowhi th:first-child,.kan-table th.colhi{color:var(--vermilion);}
+.kan-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 4px;font-size:13px;color:var(--ink-soft);}
+.kan-chip{display:inline-block;min-width:30px;text-align:center;border-radius:5px;padding:2px 0;font-weight:700;font-size:15px;}
+.kan-chip.k-o{background:#DDEEDC;color:#2E6B3A;}.kan-chip.k-t{background:#FBEFC8;color:#8A6A12;}
+.kan-chip.k-x{background:#F6D9D5;color:#A8372A;}.kan-chip.k-q{background:#E6E0EE;color:#5B4A78;}
+.kan-dotnote{margin-left:8px;display:inline-flex;align-items:center;gap:5px;}
+.kan-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--indigo);}
+.kan-axis-note{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
+.kan-notes{border-top:1px solid var(--line-soft);padding-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 16px;font-size:14px;}
+.kan-notes div{padding:3px 0;}
+.kan-notes b{font-family:"Hiragino Mincho ProN","Noto Serif JP",serif;margin-right:4px;}
+@media(max-width:600px){
+  .kan-table td{height:36px;font-size:16px;}
+  .kan-table th{font-size:14px;}
+  #qrModal .qr-body{padding:12px;}
+}
 </style>
 
 </head>
@@ -861,11 +911,14 @@ document.addEventListener('DOMContentLoaded', initAuth);
       <div id="qrMenu" class="qr-menu">
         <button type="button" class="qr-menu-btn" data-qr="shishi"><span class="qr-ico">◆</span><span><b>十二支の関係</b><small>支合・支冲・害・刑を地支ごとに確認</small></span></button>
         <button type="button" class="qr-menu-btn" data-qr="jikkan"><span class="qr-ico">◆</span><span><b>十干×十二運</b><small>天干ごとの十二運と羊刃</small></span></button>
+        <button type="button" class="qr-menu-btn" data-qr="kanrel"><span class="qr-ico">◆</span><span><b>干の関係表</b><small>十干×十干の相性（○△×）</small></span></button>
         <button type="button" class="qr-menu-btn" data-qr="jichu"><span class="qr-ico">◆</span><span><b>時柱早見表</b><small>日干と時間帯から時柱を確認</small></span></button>
+        <button type="button" class="qr-menu-btn" data-qr="kan"><span class="qr-ico">◆</span><span><b>干の関係</b><small>十干どうしの相性を〇△×で確認</small></span></button>
         <button type="button" class="qr-menu-btn" data-qr="kaika"><span class="qr-ico">☀</span><span><b>開花指数 凡例</b><small>点数と天気の対応・計算ルール</small></span></button>
       </div>
       <div class="qr-view" id="qr-shishi" hidden><div id="shishi-panel-body"></div></div>
       <div class="qr-view" id="qr-jikkan" hidden><div id="jikkan-panel-body"></div></div>
+      <div class="qr-view" id="qr-kanrel" hidden><div id="kanrel-body"></div></div>
       <div class="qr-view" id="qr-jichu" hidden>
     <div class="jichu-table-wrap">
       <table class="jichu-table">
@@ -891,6 +944,14 @@ document.addEventListener('DOMContentLoaded', initAuth);
       時柱の地支は生まれた時間で固定、天干は日干（生まれた日の十干）との組み合わせ（五鼠遁）で決まります。
     </p>
   </div>
+      <div class="qr-view" id="qr-kan" hidden>
+        <div class="kan-caption" id="kanCaption">マスをタップすると詳しく表示</div>
+        <div class="kan-scroll"><table class="kan-table" id="kanTable"></table></div>
+        <div class="kan-legend"><span class="kan-chip k-o">〇</span><span class="kan-chip k-t">△</span><span class="kan-chip k-x">×</span><span class="kan-chip k-q">？</span>
+          <span class="kan-dotnote"><i class="kan-dot"></i>＝補足あり</span></div>
+        <div class="kan-axis-note">縦軸（左）→ 横軸（上）の組み合わせ</div>
+        <div id="kanNotes" class="kan-notes"></div>
+      </div>
       <div class="qr-view" id="qr-kaika" hidden><div class="kaika-legend-body">
     <div class="kaika-legend-row">
       <div class="kaika-legend-color" style="background:#C0392B;"></div>
@@ -10077,7 +10138,9 @@ function closeKanshiPopover(){
   const VIEWS={
     shishi:{el:document.getElementById('qr-shishi'),title:'十二支の関係',body:'shishi-panel-body'},
     jikkan:{el:document.getElementById('qr-jikkan'),title:'十干×十二運',body:'jikkan-panel-body'},
+    kanrel:{el:document.getElementById('qr-kanrel'),title:'干の関係表'},
     jichu:{el:document.getElementById('qr-jichu'),title:'時柱早見表'},
+    kan:{el:document.getElementById('qr-kan'),title:'干の関係'},
     kaika:{el:document.getElementById('qr-kaika'),title:'開花指数 凡例'},
   };
   let current=null;
@@ -10125,6 +10188,87 @@ function closeKanshiPopover(){
     showMenu();                        // 各早見表 → メニュー
   });
   showMenu();
+})();
+
+/* ============================================================
+   干の関係表（縦軸＝基準の天干 → 横軸＝相手の天干 の ○△×）
+   ============================================================ */
+(function(){
+  const host=document.getElementById('kanrel-body');
+  if(!host) return;
+  const O='○',T='△',X='×';
+  const ORDER=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+  /* [判定, 補足] ／ 判定が''のものは補足のみ表示 */
+  const D={
+    '甲':[[O],[T],[X],[O],[O],[X],[O],[X],[O],[O]],
+    '乙':[[O],[O],[O],[O],[O],[X],[O],[X],[O],[O]],
+    '丙':[[O],[O],[O,'派手'],[T],[O],[X],[T],[X],[O],[X]],
+    '丁':[[O],[O],[X,'恐れる'],[O],[O],[O],[O],[X],[O],[X]],
+    '戊':[[O],[X],[O],[T,'弱い'],['','命式次第'],[X,'より'],[O],[O],[O],[X]],
+    '己':[[O],[X],[O],[T],[O],[O],[O],[X,'汚玉'],[X],[X]],
+    '庚':[[O],[X,'制御される'],[O],[O],[O],[O],[O],[X],[O],[O]],
+    '辛':[[X],[X],[O],[X],[O],[X,'汚玉'],[X],[T],[O],[O]],
+    '壬':[[O],[T],[O],[X],[O],[X],[O],[O],[T],[T]],
+    '癸':[[O],[O],[X,'バランス見て'],[X],[O],[X,'負担がかかる'],[O,'辛の方がいい'],[O],[T],[O]],
+  };
+  const cls=m=>m===O?'kr-o':m===T?'kr-t':m===X?'kr-x':'kr-q';
+  const col=k=>(typeof GOGYO_COLOR!=='undefined'&&KAN_INFO[k])?GOGYO_COLOR[KAN_INFO[k].g]:'inherit';
+  let h='<p class="kr-legend"><b style="color:#1565C0;">○</b> 良い　<b style="color:#E65100;">△</b> 普通・注意　<b style="color:#B71C1C;">×</b> 悪い／注意<br>縦軸（左）の干から見た、横軸（上）の干との関係です。例：縦「甲」×横「乙」＝△</p>';
+  h+='<div class="kr-wrap"><table class="kr-table"><tr><th class="kr-corner">縦＼横</th>';
+  ORDER.forEach(k=>{h+=`<th style="color:${col(k)};">${k}</th>`;});
+  h+='</tr>';
+  ORDER.forEach((r,ri)=>{
+    h+=`<tr><th style="color:${col(r)};">${r}</th>`;
+    D[r].forEach((c,ci)=>{
+      const m=c[0],n=c[1]||'';
+      h+=`<td class="${cls(m)}${ri===ci?' kr-self':''}">${m?`<span class="kr-m">${m}</span>`:''}${n?`<span class="kr-n">${n}</span>`:''}</td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</table></div>';
+  host.innerHTML=h;
+})();
+
+/* ============================================================
+   干の関係表（縦軸＝最初の干、横軸＝あとの干）
+   ============================================================ */
+(function(){
+  const K='甲乙丙丁戊己庚辛壬癸'.split('');
+  const D={"甲": [["〇", ""], ["△", ""], ["×", ""], ["〇", ""], ["〇", ""], ["×", ""], ["〇", ""], ["×", ""], ["〇", ""], ["〇", ""]], "乙": [["〇", ""], ["〇", ""], ["〇", ""], ["〇", ""], ["〇", ""], ["×", ""], ["〇", ""], ["×", ""], ["〇", ""], ["〇", ""]], "丙": [["〇", ""], ["〇", ""], ["〇", "派手"], ["△", ""], ["〇", ""], ["×", ""], ["△", ""], ["×", ""], ["〇", ""], ["×", ""]], "丁": [["〇", ""], ["〇", ""], ["×", "恐れる"], ["〇", ""], ["〇", ""], ["〇", ""], ["〇", ""], ["×", ""], ["〇", ""], ["×", ""]], "戊": [["〇", ""], ["×", ""], ["〇", ""], ["△", "弱い"], ["?", "命式次第"], ["×", "×寄り"], ["〇", ""], ["〇", ""], ["〇", ""], ["×", ""]], "己": [["〇", ""], ["×", ""], ["〇", ""], ["△", ""], ["〇", ""], ["〇", ""], ["〇", ""], ["×", "汚玉"], ["×", ""], ["×", ""]], "庚": [["〇", ""], ["×", "制御される"], ["〇", ""], ["〇", ""], ["〇", ""], ["〇", ""], ["〇", ""], ["×", ""], ["〇", ""], ["〇", ""]], "辛": [["×", ""], ["×", ""], ["〇", ""], ["×", ""], ["〇", ""], ["×", "汚玉"], ["×", ""], ["△", ""], ["〇", ""], ["〇", ""]], "壬": [["〇", ""], ["△", ""], ["〇", ""], ["×", ""], ["〇", ""], ["×", ""], ["〇", ""], ["〇", ""], ["△", ""], ["△", ""]], "癸": [["〇", ""], ["〇", ""], ["×", "バランス見て"], ["×", ""], ["〇", ""], ["×", "負担がかかる"], ["〇", "辛の方がいい"], ["〇", ""], ["△", ""], ["〇", ""]]};
+  const cls={'〇':'k-o','△':'k-t','×':'k-x','?':'k-q'};
+  const label={'?':'？'};
+  const tbl=document.getElementById('kanTable');
+  const cap=document.getElementById('kanCaption');
+  const notesEl=document.getElementById('kanNotes');
+  if(!tbl) return;
+  let h='<tr><th class="kan-corner"></th>'+K.map((k,i)=>'<th data-c="'+i+'">'+k+'</th>').join('')+'</tr>';
+  const notes=[];
+  K.forEach((r,ri)=>{
+    h+='<tr data-r="'+ri+'"><th>'+r+'</th>';
+    D[r].forEach((c,ci)=>{
+      const sym=c[0],note=c[1];
+      h+='<td class="'+cls[sym]+(note?' hasnote':'')+'" data-r="'+ri+'" data-c="'+ci+'">'+(label[sym]||sym)+'</td>';
+      if(note) notes.push('<div><b>'+r+'×'+K[ci]+'</b>'+(label[sym]||sym)+'　'+note+'</div>');
+    });
+    h+='</tr>';
+  });
+  tbl.innerHTML=h;
+  notesEl.innerHTML=notes.join('');
+  let sel=null;
+  function clear(){
+    if(sel) sel.classList.remove('sel');
+    tbl.querySelectorAll('.rowhi').forEach(e=>e.classList.remove('rowhi'));
+    tbl.querySelectorAll('.colhi').forEach(e=>e.classList.remove('colhi'));
+  }
+  tbl.addEventListener('click',e=>{
+    const td=e.target.closest('td'); if(!td) return;
+    clear();
+    sel=td; td.classList.add('sel');
+    const r=+td.dataset.r,c=+td.dataset.c,v=D[K[r]][c];
+    tbl.querySelector('tr[data-r="'+r+'"]').classList.add('rowhi');
+    tbl.querySelector('th[data-c="'+c+'"]').classList.add('colhi');
+    cap.innerHTML='<span><b>'+K[r]+' → '+K[c]+'</b>　'+(label[v[0]]||v[0])+(v[1]?'　（'+v[1]+'）':'')+'</span>';
+  });
 })();
 </script>
 </body>

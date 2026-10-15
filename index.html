@@ -2363,12 +2363,12 @@ function renderDaiunTable(){
   const count=+document.getElementById('duCount').value;
   const blocks=buildDaiunBlocks(r,count);
   const meishikiEnergyScores = calcEnergyScores(r);
-  // 命式天干リストと対応するエネルギースコアをまとめる（時・日・月・年順）
+  // 命式天干リストと対応するエネルギースコアをまとめる（年・月・日・時順）
   const meishikiPillars = [
-    ...(r.hour.k !== '-' ? [{ label: '時干', p: r.hour, es: meishikiEnergyScores[3] }] : []),
-    { label: '日干', p: r.day,   es: meishikiEnergyScores[2] },
-    { label: '月干', p: r.month, es: meishikiEnergyScores[1] },
     { label: '年干', p: r.year,  es: meishikiEnergyScores[0] },
+    { label: '月干', p: r.month, es: meishikiEnergyScores[1] },
+    { label: '日干', p: r.day,   es: meishikiEnergyScores[2] },
+    ...(r.hour.k !== '-' ? [{ label: '時干', p: r.hour, es: meishikiEnergyScores[3] }] : []),
   ];
 
   // 命式天干ヘッダー（天干＋地支）
@@ -3314,10 +3314,10 @@ function renderTable(){
   // 命式天干リスト（年運○×△用）
   const _yrScores=calcEnergyScores(r);
   const meishikiPillarsYr=[
-    ...(r.hour.k!=='-'?[{label:'時干',p:r.hour,es:_yrScores[3]}]:[]),
-    {label:'日干',p:r.day,  es:_yrScores[2]},
-    {label:'月干',p:r.month,es:_yrScores[1]},
     {label:'年干',p:r.year, es:_yrScores[0]},
+    {label:'月干',p:r.month,es:_yrScores[1]},
+    {label:'日干',p:r.day,  es:_yrScores[2]},
+    ...(r.hour.k!=='-'?[{label:'時干',p:r.hour,es:_yrScores[3]}]:[]),
   ];
   const nenunKanHeaders=meishikiPillarsYr.map(m=>
     `<th style="min-width:56px;">${m.p.k}${m.p.s}<br><span style="font-weight:400;font-size:10px;">${m.es?.label??''}</span></th>`
@@ -4475,10 +4475,10 @@ function renderGetsuunTable() {
   // 命式天干リスト（○△×評価用）
   const _esScores = calcEnergyScores(r);
   const meishikiPillarsGe = [
-    ...(r.hour.k !== '-' ? [{ label: '時干', p: r.hour, es: _esScores[3] }] : []),
-    { label: '日干', p: r.day,   es: _esScores[2] },
-    { label: '月干', p: r.month, es: _esScores[1] },
     { label: '年干', p: r.year,  es: _esScores[0] },
+    { label: '月干', p: r.month, es: _esScores[1] },
+    { label: '日干', p: r.day,   es: _esScores[2] },
+    ...(r.hour.k !== '-' ? [{ label: '時干', p: r.hour, es: _esScores[3] }] : []),
   ];
 
   // 死神判定用：日干を除く宿命天干

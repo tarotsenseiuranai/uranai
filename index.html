@@ -909,7 +909,7 @@ document.addEventListener('DOMContentLoaded', initAuth);
     </div>
     <div class="qr-body">
       <div id="qrMenu" class="qr-menu">
-        <button type="button" class="qr-menu-btn" data-qr="shishi"><span class="qr-ico">◆</span><span><b>十二支の関係</b><small>支合・支冲・害・刑を地支ごとに確認</small></span></button>
+        <button type="button" class="qr-menu-btn" data-qr="shishi"><span class="qr-ico">◆</span><span><b>十二支の関係</b><small>支合・支冲・害・破・刑を地支ごとに確認</small></span></button>
         <button type="button" class="qr-menu-btn" data-qr="jikkan"><span class="qr-ico">◆</span><span><b>十干×十二運</b><small>天干ごとの十二運と羊刃</small></span></button>
         <button type="button" class="qr-menu-btn" data-qr="kanrel"><span class="qr-ico">◆</span><span><b>干の関係表</b><small>十干×十干の相性（○△×）</small></span></button>
         <button type="button" class="qr-menu-btn" data-qr="jichu"><span class="qr-ico">◆</span><span><b>時柱早見表</b><small>日干と時間帯から時柱を確認</small></span></button>
@@ -1587,6 +1587,8 @@ function zokanAll(shi,dayKan,selectedStem){
    地支の相剋関係（支合・支冲に加えて、害・刑をすべて判定）
    ============================================================ */
 const HAI_PAIR={"子":"未","未":"子","丑":"午","午":"丑","寅":"巳","巳":"寅","卯":"辰","辰":"卯","申":"亥","亥":"申","酉":"戌","戌":"酉"};
+/* 六破（十二支の破）：子酉・丑辰・寅亥・卯午・巳申・未戌。早見パネルでのみ使用 */
+const HA_PAIR={"子":"酉","酉":"子","丑":"辰","辰":"丑","寅":"亥","亥":"寅","卯":"午","午":"卯","巳":"申","申":"巳","未":"戌","戌":"未"};
 const XING_GROUP_MUEN=["寅","巳","申"];    /* 無恩の刑 */
 const XING_GROUP_JISEI=["丑","戌","未"];   /* 恃勢の刑 */
 const XING_PAIR_BUREI={"子":"卯","卯":"子"}; /* 無礼の刑 */
@@ -10041,7 +10043,7 @@ function closeKanshiPopover(){
 /* ============================================================
    十二支の関係 早見パネル ／ 十干×十二運 早見パネル
    ・ページ読み込み時から常時使える（鑑定前でも動作する）静的な早見表。
-   ・十二支パネル：地支を1つ選ぶと、他の全地支との「支合・支冲・害・刑」を一覧表示。
+   ・十二支パネル：地支を1つ選ぶと、他の全地支との「支合・支冲・害・破・刑」を一覧表示。
    ・十干パネル：天干を1つ選ぶと、十二支それぞれに対する十二運を一覧表示。
    ============================================================ */
 (function(){
@@ -10049,11 +10051,11 @@ function closeKanshiPopover(){
   const kanBody = document.getElementById('jikkan-panel-body');
   if(!shiBody || !kanBody) return;
 
-  /* 関係ラベル配列 → バッジHTML（支合＝青、支冲／害／刑＝赤、なし＝グレー） */
+  /* 関係ラベル配列 → バッジHTML（支合＝青、支冲／害／破／刑＝赤、なし＝グレー） */
   function relTagsHtml(rels){
     if(!rels || !rels.length) return '<span class="quickref-rel-tag quickref-rel-none">-</span>';
     return rels.map(r=>{
-      const cls = (r==='支冲' || r==='害' || r.indexOf('刑')===0) ? 'angle-red' : 'angle-blue';
+      const cls = (r==='支冲' || r==='害' || r==='破' || r.indexOf('刑')===0) ? 'angle-red' : 'angle-blue';
       return '<span class="quickref-rel-tag ' + cls + '">' + r + '</span>';
     }).join(' ');
   }
@@ -10075,13 +10077,14 @@ function closeKanshiPopover(){
         rels = XING_SELF.includes(base) ? ['自刑'] : [];
       } else {
         rels = shiRelations(base, s);
+        if(HA_PAIR[base] === s) rels.push('破');
       }
       const selfNote = (s === base) ? '（同支）' : '';
       rows += '<div class="quickref-result-row"><span>' + base + '×' + s + selfNote + '</span>' + relTagsHtml(rels) + '</div>';
     }
     shiBody.innerHTML =
       '<button type="button" class="quickref-back-btn" data-shishi-back>← 十二支を選び直す</button>' +
-      '<div class="quickref-title-row">「' + base + '」と各地支の関係（支合・支冲・害・刑）</div>' +
+      '<div class="quickref-title-row">「' + base + '」と各地支の関係（支合・支冲・害・破・刑）</div>' +
       rows;
   }
   shiBody.addEventListener('click', function(e){

@@ -1004,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', initAuth);
   <h2>生年月日時の入力</h2>
   <p class="sub">出生地は日本国内の都道府県から選択してください。時刻不明の場合は「時刻不明」にチェック。</p>
   <div class="grid">
-    <div class="field"><label>年（西暦）</label><input type="number" id="inYear" value="1990" min="1924" max="2030"></div>
+    <div class="field"><label>年（西暦／和暦）</label><select id="inYearEra" onchange="eraHint('inYear')" style="font-size:16px;margin-bottom:4px"><option value="0">西暦</option><option value="2018">令和</option><option value="1988">平成</option><option value="1925">昭和</option><option value="1911">大正</option></select><input type="number" id="inYear" value="1990" min="1" max="2100" oninput="eraHint('inYear')"><small id="inYearHint" style="color:var(--ink-soft)"></small></div>
     <div class="field"><label>月</label><input type="number" id="inMonth" value="7" min="1" max="12"></div>
     <div class="field"><label>日</label><input type="number" id="inDay" value="15" min="1" max="31"></div>
     <div class="field"><label>時</label><input type="number" id="inHour" value="14" min="0" max="23"></div>
@@ -1106,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', initAuth);
     <p class="sub">お相手の生年月日を入力すると、本命宿同士の位置関係から相性を診断します。宿曜の相性は一方通行の場合があり、「あなたから見た相手」と「相手から見たあなた」で結果が異なることがあります（例：あなたから見て「安」でも、相手から見ると「壊」など）。</p>
     <p class="sub">0学占術の「運命相性」も同様に一方通行です。あなたの支配星から見た相手の生まれ年（十二支）、相手の支配星から見たあなたの生まれ年（十二支）を、それぞれ独立に判定します。</p>
     <div class="grid">
-      <div class="field"><label>相手の年（西暦）</label><input type="number" id="aiYear" value="1990" min="1900" max="2100"></div>
+      <div class="field"><label>相手の年（西暦／和暦）</label><select id="aiYearEra" onchange="eraHint('aiYear')" style="font-size:16px;margin-bottom:4px"><option value="0">西暦</option><option value="2018">令和</option><option value="1988">平成</option><option value="1925">昭和</option><option value="1911">大正</option></select><input type="number" id="aiYear" value="1990" min="1" max="2100" oninput="eraHint('aiYear')"><small id="aiYearHint" style="color:var(--ink-soft)"></small></div>
       <div class="field"><label>相手の月</label><input type="number" id="aiMonth" value="1" min="1" max="12"></div>
       <div class="field"><label>相手の日</label><input type="number" id="aiDay" value="1" min="1" max="31"></div>
       <div class="field">
@@ -1871,6 +1871,19 @@ function daiunKanshiAtAge(r,age){
   return blocks[0].kanshi;
 }
 
+/* 年運表・月運表用：大運を前半5年＝天干、後半5年＝地支に分けた表示HTML */
+function daiunHalfHtml(r,age){
+  const n=Math.max(12,Math.ceil(Math.max(age,0)/10)+3);
+  const blocks=buildDaiunBlocks(r,n);
+  let bi=0;
+  for(let i=0;i<blocks.length;i++){ if(age>=blocks[i].ageStart&&age<=blocks[i].ageEnd){bi=i;break;} }
+  const b=blocks[bi];
+  const first=(age-b.ageStart)<5;
+  const ch=first?b.kanshi[0]:b.kanshi[1];
+  const ki=`第${((age-b.ageStart)%5)+1}期`;
+  return `${b.kanshi}（${ch}）<span style="font-size:10px;color:var(--ink-soft);margin-left:3px;">${ki}</span>`;
+}
+
 /* ============================================================
    出生地一覧
    Copyright (c) 2026 Yoshihiro Sakai / Sakai Inst. Astrol. — MIT License
@@ -1919,8 +1932,18 @@ document.getElementById('btnDuRefresh').onclick=renderDaiunTable;
 document.getElementById('btnGRefresh').onclick=renderGetsuunTable;
 document.getElementById('btnAisho').onclick=renderAisho;
 
+function getWesternYear(id){
+  const v=+document.getElementById(id).value;
+  const off=+document.getElementById(id+'Era').value;
+  return off?off+v:v;
+}
+function eraHint(id){
+  const off=+document.getElementById(id+'Era').value;
+  const h=document.getElementById(id+'Hint');
+  if(h) h.textContent=off?('＝西暦'+getWesternYear(id)+'年'):'';
+}
 function runCalc(){
-  const year=+document.getElementById('inYear').value;
+  const year=getWesternYear('inYear');
   const month=+document.getElementById('inMonth').value;
   const day=+document.getElementById('inDay').value;
   const tu=document.getElementById('inTimeUnknown').checked;
@@ -3418,7 +3441,7 @@ function renderTable(){
       <td${yearCls?` class="${yearCls}"`:''}>${isShin?`<span class="shinigami-icon">💀</span>`:isShinMatch?`<span class="shinigami-match-icon">💀</span>`:''}${y}${isShin?`<span class="shinigami-sub">${shinLabel}</span>`:isShinMatch?`<span class="shinigami-match-sub">${shinLabel}</span>`:''}
       </td>
       <td>${age>=0?age+'歳':'-'}</td>
-      <td${duCls?` class="${duCls}"`:''} >${du}</td>
+      <td${duCls?` class="${duCls}"`:''} >${daiunHalfHtml(r,age)}</td>
       <td${yearCls?` class="${yearCls}"`:''} >${ks}</td>
       <td style="text-align:center;font-size:12.5px;">${yearSuku}<br><span style="font-weight:700;font-size:13px;color:var(--vermilion);">${sanku.label}</span><br>${sankuRangeHtml}</td>
       <td style="text-align:center;font-size:13px;">${tenGod(r.day.k, yrKan)}</td>
@@ -3603,7 +3626,7 @@ function renderAisho(){
     resultEl.innerHTML='<p class="note">先に上部の「鑑定する」ボタンでご自身の命式を計算してください。</p>';
     return;
   }
-  const ay=+document.getElementById('aiYear').value;
+  const ay=getWesternYear('aiYear');
   const am=+document.getElementById('aiMonth').value;
   const ad=+document.getElementById('aiDay').value;
   if(!ay||!am||!ad){
@@ -4574,7 +4597,7 @@ function renderGetsuunTable() {
 
     rows += `<tr>
       <td style="white-space:nowrap;font-weight:700;">${calYear(kMonth)}年 ${monthLabel(kMonth)}</td>
-      <td class="ks${duColCls ? ' ' + duColCls : ''}" style="font-size:16px;">${isDuShin ? '<span class="shinigami-icon">💀</span>' : isDuMatch ? '<span class="shinigami-match-icon">💀</span>' : ''}${du}</td>
+      <td class="ks${duColCls ? ' ' + duColCls : ''}" style="font-size:16px;">${isDuShin ? '<span class="shinigami-icon">💀</span>' : isDuMatch ? '<span class="shinigami-match-icon">💀</span>' : ''}${daiunHalfHtml(r, age)}</td>
       <td class="ks${yrColCls ? ' ' + yrColCls : ''}" style="font-size:16px;">${isYrShin ? '<span class="shinigami-icon">💀</span>' : isYrMatch ? '<span class="shinigami-match-icon">💀</span>' : ''}${yrKs}</td>
       <td class="ks${moCls ? ' ' + moCls : ''}" style="font-size:16px;">${isMoShin ? '<span class="shinigami-icon">💀</span>' : isMoMatch ? '<span class="shinigami-match-icon">💀</span>' : ''}${mp.k}${mp.s}</td>
       <td style="text-align:center;font-size:13px;">${tenGod(r.day.k, mp.k)}</td>

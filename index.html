@@ -10125,6 +10125,11 @@ function closeKanshiPopover(){
       html += '<button type="button" class="quickref-cell-btn" data-kan="' + k + '">' + k + '</button>';
     }
     html += '</div>';
+    html += '<div class="quickref-grid" style="margin-top:12px;">';
+    for(const s of SHI){
+      html += '<button type="button" class="quickref-cell-btn" data-kanshi-shi="' + s + '">' + s + '</button>';
+    }
+    html += '</div>';
     kanBody.innerHTML = html;
   }
   function renderKanResult(kan){
@@ -10145,12 +10150,39 @@ function closeKanshiPopover(){
       ? '<div class="quickref-title-row">羊刃：<b style="color:var(--vermilion);">' + yangrenShi + '</b>（この十干が帝旺となる、もっとも強すぎる地支）</div>'
       : '<div class="quickref-title-row" style="color:#bbb;">※ 陰干のため羊刃は成立しません</div>';
     kanBody.innerHTML =
-      '<button type="button" class="quickref-back-btn" data-jikkan-back>← 十干を選び直す</button>' +
+      '<button type="button" class="quickref-back-btn" data-jikkan-back>← 十干・十二支を選び直す</button>' +
       '<div class="quickref-title-row">「' + kan + '」の十二運（地支ごと）</div>' +
       yangrenNote +
       rows;
   }
+  /* 十二支を選んだとき：十干ごとの十二運を一覧表示 */
+  function renderShiUnResult(shi){
+    let rows = '';
+    let yangrenKans = [];
+    for(const k of KAN){
+      const ju = juniUn(k, shi) || '-';
+      const isYangren = (YANGREN_TABLE[k] === shi);
+      if(isYangren) yangrenKans.push(k);
+      const rowAttr = isYangren
+        ? ' style="background:var(--red-pale);margin:0 -12px;padding:5px 12px;"'
+        : '';
+      const yangrenBadge = isYangren
+        ? ' <span class="quickref-rel-tag angle-red">羊刃</span>'
+        : '';
+      rows += '<div class="quickref-result-row"' + rowAttr + '><span>' + k + '×' + shi + '</span><span><span class="quickref-rel-tag">' + ju + '</span>' + yangrenBadge + '</span></div>';
+    }
+    const note = yangrenKans.length
+      ? '<div class="quickref-title-row">羊刃：<b style="color:var(--vermilion);">' + yangrenKans.join('・') + '</b>（この地支で帝旺となる十干）</div>'
+      : '<div class="quickref-title-row" style="color:#bbb;">※ この地支を羊刃とする十干はありません</div>';
+    kanBody.innerHTML =
+      '<button type="button" class="quickref-back-btn" data-jikkan-back>← 十干・十二支を選び直す</button>' +
+      '<div class="quickref-title-row">「' + shi + '」における各十干の十二運</div>' +
+      note +
+      rows;
+  }
   kanBody.addEventListener('click', function(e){
+    const shiBtn = e.target.closest('button[data-kanshi-shi]');
+    if(shiBtn){ renderShiUnResult(shiBtn.getAttribute('data-kanshi-shi')); return; }
     const backBtn = e.target.closest('[data-jikkan-back]');
     if(backBtn){ renderKanGrid(); return; }
     const btn = e.target.closest('button[data-kan]');
